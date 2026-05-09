@@ -516,7 +516,7 @@ export default function PremiumBookingPage() {
                 <img src={info.theme.logo_url} alt="" className="w-16 h-16 rounded-2xl object-cover mb-8 border border-white/10 shadow-2xl" />
               )}
               <p className="text-xs font-bold tracking-[0.35em] uppercase mb-4" style={{ color: primary }}>
-                {info.tenant?.category || 'Beauty & Wellness'}
+                {info.tenant?.category || 'Beleza & Bem-estar'}
               </p>
               <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white leading-[0.95] tracking-tight">
                 {tenantName}
