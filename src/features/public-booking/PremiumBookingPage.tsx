@@ -180,296 +180,291 @@ export default function PremiumBookingPage() {
 
   const hasAbout = info.settings?.homepage_title || info.settings?.homepage_subtitle || info.tenant?.short_description
 
-  // ── BOOKING DRAWER ────────────────────────────────────────────────────────
-  const Drawer = () => (
-    <div className={`fixed inset-0 z-50 transition-all duration-300 ${drawerOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} />
-      <div className={`absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl transition-transform duration-500 ease-out max-h-[92vh] overflow-hidden flex flex-col lg:max-w-lg lg:left-auto lg:right-6 lg:bottom-6 lg:rounded-3xl ${drawerOpen ? 'translate-y-0' : 'translate-y-full'}`}>
-        <div className="flex justify-center pt-3 pb-1 shrink-0 lg:hidden">
-          <div className="w-10 h-1 rounded-full bg-zinc-200" />
-        </div>
-        <div className="flex items-center justify-between px-6 py-4 shrink-0 border-b border-zinc-50">
-          <div>
-            {step !== 'services' && step !== 'success' && (
-              <button
-                onClick={() => setStep(step === 'datetime' ? 'services' : step === 'auth' ? 'datetime' : step === 'confirm' ? (isAuthenticated ? 'datetime' : 'auth') : 'services')}
-                className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-900 mb-1 transition-colors">
-                <ChevronLeft className="w-3.5 h-3.5" /> Voltar
-              </button>
-            )}
-            <h2 className="text-base font-bold text-zinc-900">
-              {step === 'services' && 'Escolha os serviços'}
-              {step === 'datetime' && 'Data & horário'}
-              {step === 'auth' && 'Identificação'}
-              {step === 'confirm' && 'Confirmar agendamento'}
-              {step === 'success' && 'Agendado!'}
-            </h2>
+  // ── PAGE ──────────────────────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen bg-white font-sans">
+      {/* ── BOOKING DRAWER (inlined — never defined as sub-component to avoid remount) */}
+      <div className={`fixed inset-0 z-50 transition-all duration-300 ${drawerOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} />
+        <div className={`absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl transition-transform duration-500 ease-out max-h-[92vh] overflow-hidden flex flex-col lg:max-w-lg lg:left-auto lg:right-6 lg:bottom-6 lg:rounded-3xl ${drawerOpen ? 'translate-y-0' : 'translate-y-full'}`}>
+          <div className="flex justify-center pt-3 pb-1 shrink-0 lg:hidden">
+            <div className="w-10 h-1 rounded-full bg-zinc-200" />
           </div>
-          <button onClick={() => setDrawerOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 transition-colors">
-            <X className="w-4 h-4 text-zinc-600" />
-          </button>
-        </div>
-
-        {step !== 'success' && (
-          <div className="flex gap-1.5 px-6 pt-3 pb-1 shrink-0">
-            {(['services', 'datetime', 'auth', 'confirm'] as Step[]).map((s, i) => (
-              <div key={s} className="h-1 flex-1 rounded-full transition-all duration-300"
-                style={{ backgroundColor: ['services', 'datetime', 'auth', 'confirm'].indexOf(step) >= i ? primary : '#e4e4e7' }} />
-            ))}
+          <div className="flex items-center justify-between px-6 py-4 shrink-0 border-b border-zinc-50">
+            <div>
+              {step !== 'services' && step !== 'success' && (
+                <button
+                  onClick={() => setStep(step === 'datetime' ? 'services' : step === 'auth' ? 'datetime' : step === 'confirm' ? (isAuthenticated ? 'datetime' : 'auth') : 'services')}
+                  className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-900 mb-1 transition-colors">
+                  <ChevronLeft className="w-3.5 h-3.5" /> Voltar
+                </button>
+              )}
+              <h2 className="text-base font-bold text-zinc-900">
+                {step === 'services' && 'Escolha os serviços'}
+                {step === 'datetime' && 'Data & horário'}
+                {step === 'auth' && 'Identificação'}
+                {step === 'confirm' && 'Confirmar agendamento'}
+                {step === 'success' && 'Agendado!'}
+              </h2>
+            </div>
+            <button onClick={() => setDrawerOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 transition-colors">
+              <X className="w-4 h-4 text-zinc-600" />
+            </button>
           </div>
-        )}
 
-        <div className="overflow-y-auto flex-1 px-6 pb-6 pt-4">
-          {/* STEP: Services */}
-          {step === 'services' && (
-            <div className="space-y-2">
-              {services.map(svc => {
-                const sel = selectedServiceIds.includes(svc.id)
-                return (
-                  <button key={svc.id} onClick={() => toggleService(svc.id)}
-                    className={`w-full text-left p-4 rounded-2xl border-2 transition-all flex items-center gap-4 ${sel ? 'bg-zinc-50' : 'border-zinc-100 bg-white hover:border-zinc-200'}`}
-                    style={sel ? { borderColor: primary } : {}}>
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all`}
-                      style={sel ? { backgroundColor: primary, borderColor: primary } : { borderColor: '#d4d4d8' }}>
-                      {sel && <Check className="w-3.5 h-3.5 text-white" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-zinc-900 text-sm">{svc.name}</p>
-                      {svc.description && <p className="text-xs text-zinc-400 truncate mt-0.5">{svc.description}</p>}
-                      <p className="text-xs text-zinc-400 mt-1 flex items-center gap-1"><Clock className="w-3 h-3" />{svc.duration_minutes}min</p>
-                    </div>
-                    <p className="text-sm font-bold text-zinc-900 shrink-0">R$ {Number(svc.price).toFixed(2)}</p>
-                  </button>
-                )
-              })}
+          {step !== 'success' && (
+            <div className="flex gap-1.5 px-6 pt-3 pb-1 shrink-0">
+              {(['services', 'datetime', 'auth', 'confirm'] as Step[]).map((s, i) => (
+                <div key={s} className="h-1 flex-1 rounded-full transition-all duration-300"
+                  style={{ backgroundColor: ['services', 'datetime', 'auth', 'confirm'].indexOf(step) >= i ? primary : '#e4e4e7' }} />
+              ))}
             </div>
           )}
 
-          {/* STEP: Date/Time */}
-          {step === 'datetime' && (
-            <div className="space-y-6">
-              {profsArr.length > 1 && info.settings?.allow_professional_choice !== false && (
+          <div className="overflow-y-auto flex-1 px-6 pb-6 pt-4">
+            {/* STEP: Services */}
+            {step === 'services' && (
+              <div className="space-y-2">
+                {services.map(svc => {
+                  const sel = selectedServiceIds.includes(svc.id)
+                  return (
+                    <button key={svc.id} onClick={() => toggleService(svc.id)}
+                      className={`w-full text-left p-4 rounded-2xl border-2 transition-all flex items-center gap-4 ${sel ? 'bg-zinc-50' : 'border-zinc-100 bg-white hover:border-zinc-200'}`}
+                      style={sel ? { borderColor: primary } : {}}>
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all`}
+                        style={sel ? { backgroundColor: primary, borderColor: primary } : { borderColor: '#d4d4d8' }}>
+                        {sel && <Check className="w-3.5 h-3.5 text-white" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-zinc-900 text-sm">{svc.name}</p>
+                        {svc.description && <p className="text-xs text-zinc-400 truncate mt-0.5">{svc.description}</p>}
+                        <p className="text-xs text-zinc-400 mt-1 flex items-center gap-1"><Clock className="w-3 h-3" />{svc.duration_minutes}min</p>
+                      </div>
+                      <p className="text-sm font-bold text-zinc-900 shrink-0">R$ {Number(svc.price).toFixed(2)}</p>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* STEP: Date/Time */}
+            {step === 'datetime' && (
+              <div className="space-y-6">
+                {profsArr.length > 1 && info.settings?.allow_professional_choice !== false && (
+                  <div>
+                    <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">Profissional</p>
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {info.settings?.allow_any_professional !== false && (
+                        <button onClick={() => setSelectedProfId('')}
+                          className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all ${!selectedProfId ? 'text-white border-transparent' : 'border-zinc-200 text-zinc-600 bg-white'}`}
+                          style={!selectedProfId ? { backgroundColor: primary } : {}}>
+                          Qualquer
+                        </button>
+                      )}
+                      {profsArr.map(p => (
+                        <button key={p.id} onClick={() => setSelectedProfId(p.id)}
+                          className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all ${selectedProfId === p.id ? 'text-white border-transparent' : 'border-zinc-200 text-zinc-600 bg-white'}`}
+                          style={selectedProfId === p.id ? { backgroundColor: primary } : {}}>
+                          {p.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div>
-                  <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">Profissional</p>
+                  <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">Data</p>
                   <div className="flex gap-2 overflow-x-auto pb-1">
-                    {info.settings?.allow_any_professional !== false && (
-                      <button onClick={() => setSelectedProfId('')}
-                        className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all ${!selectedProfId ? 'text-white border-transparent' : 'border-zinc-200 text-zinc-600 bg-white'}`}
-                        style={!selectedProfId ? { backgroundColor: primary } : {}}>
-                        Qualquer
-                      </button>
-                    )}
-                    {profsArr.map(p => (
-                      <button key={p.id} onClick={() => setSelectedProfId(p.id)}
-                        className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all ${selectedProfId === p.id ? 'text-white border-transparent' : 'border-zinc-200 text-zinc-600 bg-white'}`}
-                        style={selectedProfId === p.id ? { backgroundColor: primary } : {}}>
-                        {p.name}
+                    {dates.map(({ date, day, month, weekday }) => (
+                      <button key={date} onClick={() => { setSelectedDate(date); setSelectedSlot('') }}
+                        className={`flex-shrink-0 flex flex-col items-center w-14 py-3 rounded-2xl border-2 transition-all ${selectedDate === date ? 'text-white border-transparent' : 'border-zinc-100 text-zinc-700 hover:border-zinc-300'}`}
+                        style={selectedDate === date ? { backgroundColor: primary } : {}}>
+                        <span className="text-[10px] font-medium uppercase opacity-70">{weekday}</span>
+                        <span className="text-xl font-black leading-tight">{day}</span>
+                        <span className="text-[10px] opacity-70">{month}</span>
                       </button>
                     ))}
                   </div>
                 </div>
-              )}
-              <div>
-                <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">Data</p>
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {dates.map(({ date, day, month, weekday }) => (
-                    <button key={date} onClick={() => { setSelectedDate(date); setSelectedSlot('') }}
-                      className={`flex-shrink-0 flex flex-col items-center w-14 py-3 rounded-2xl border-2 transition-all ${selectedDate === date ? 'text-white border-transparent' : 'border-zinc-100 text-zinc-700 hover:border-zinc-300'}`}
-                      style={selectedDate === date ? { backgroundColor: primary } : {}}>
-                      <span className="text-[10px] font-medium uppercase opacity-70">{weekday}</span>
-                      <span className="text-xl font-black leading-tight">{day}</span>
-                      <span className="text-[10px] opacity-70">{month}</span>
+                {selectedDate && (
+                  <div>
+                    <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">Horário</p>
+                    {slotsLoading ? (
+                      <div className="grid grid-cols-4 gap-2">
+                        {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-11 bg-zinc-100 rounded-xl animate-pulse" />)}
+                      </div>
+                    ) : slotsError ? (
+                      <div className="py-8 text-center">
+                        <p className="text-sm text-red-400">Erro ao buscar horários. Verifique o console.</p>
+                      </div>
+                    ) : !(slots as { start_datetime: string }[])?.length ? (
+                      <div className="py-8 text-center">
+                        <Calendar className="w-8 h-8 text-zinc-300 mx-auto mb-2" />
+                        <p className="text-sm text-zinc-400">Nenhum horário disponível nesta data</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-4 gap-2">
+                        {(slots as { start_datetime: string }[])?.map(slot => {
+                          const time = format(new Date(slot.start_datetime), 'HH:mm')
+                          const sel = selectedSlot === slot.start_datetime
+                          return (
+                            <button key={slot.start_datetime} onClick={() => setSelectedSlot(slot.start_datetime)}
+                              className={`py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${sel ? 'text-white border-transparent' : 'border-zinc-100 text-zinc-700 hover:border-zinc-300'}`}
+                              style={sel ? { backgroundColor: primary } : {}}>
+                              {time}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* STEP: Auth */}
+            {step === 'auth' && (
+              <div className="space-y-5">
+                <div className="flex bg-zinc-100 p-1 rounded-2xl gap-1">
+                  {[['login', 'Entrar'], ['register', 'Criar conta']].map(([mode, label]) => (
+                    <button key={mode} onClick={() => setAuthMode(mode as typeof authMode)}
+                      className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${authMode === mode ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-400'}`}>
+                      {label}
                     </button>
                   ))}
                 </div>
-              </div>
-              {selectedDate && (
-                <div>
-                  <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">Horário</p>
-                  {slotsLoading ? (
-                    <div className="grid grid-cols-4 gap-2">
-                      {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-11 bg-zinc-100 rounded-xl animate-pulse" />)}
-                    </div>
-                  ) : slotsError ? (
-                    <div className="py-8 text-center">
-                      <p className="text-sm text-red-400">Erro ao buscar horários. Verifique o console.</p>
-                    </div>
-                  ) : !(slots as { start_datetime: string }[])?.length ? (
-                    <div className="py-8 text-center">
-                      <Calendar className="w-8 h-8 text-zinc-300 mx-auto mb-2" />
-                      <p className="text-sm text-zinc-400">Nenhum horário disponível nesta data</p>
-                      <p className="text-xs text-zinc-300 mt-1">IDs: {selectedServiceIds.join(', ').slice(0, 30)}</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-4 gap-2">
-                      {(slots as { start_datetime: string }[])?.map(slot => {
-                        const time = format(new Date(slot.start_datetime), 'HH:mm')
-                        const sel = selectedSlot === slot.start_datetime
-                        return (
-                          <button key={slot.start_datetime} onClick={() => setSelectedSlot(slot.start_datetime)}
-                            className={`py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${sel ? 'text-white border-transparent' : 'border-zinc-100 text-zinc-700 hover:border-zinc-300'}`}
-                            style={sel ? { backgroundColor: primary } : {}}>
-                            {time}
-                          </button>
-                        )
-                      })}
+                <div className="space-y-3">
+                  {authMode === 'register' && (
+                    <div>
+                      <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 block">Nome</label>
+                      <input className="w-full border-2 border-zinc-100 rounded-xl px-4 py-3 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none transition-colors"
+                        value={authForm.name} onChange={e => setAuthForm(f => ({ ...f, name: e.target.value }))} placeholder="Maria Silva" />
                     </div>
                   )}
+                  <div>
+                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 block">Email</label>
+                    <input type="email" className="w-full border-2 border-zinc-100 rounded-xl px-4 py-3 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none transition-colors"
+                      value={authForm.email} onChange={e => setAuthForm(f => ({ ...f, email: e.target.value }))} placeholder="maria@email.com" />
+                  </div>
+                  {authMode === 'register' && (
+                    <div>
+                      <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 block">WhatsApp</label>
+                      <input type="tel" className="w-full border-2 border-zinc-100 rounded-xl px-4 py-3 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none transition-colors"
+                        value={authForm.phone} onChange={e => setAuthForm(f => ({ ...f, phone: e.target.value }))} placeholder="11999999999" />
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 block">Senha</label>
+                    <input type="password" className="w-full border-2 border-zinc-100 rounded-xl px-4 py-3 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none transition-colors"
+                      value={authForm.password} onChange={e => setAuthForm(f => ({ ...f, password: e.target.value }))} placeholder="••••••••" />
+                  </div>
                 </div>
+              </div>
+            )}
+
+            {/* STEP: Confirm */}
+            {step === 'confirm' && (
+              <div className="space-y-4">
+                <div className="bg-zinc-50 rounded-2xl p-5 space-y-3">
+                  {selectedServices.map(svc => (
+                    <div key={svc.id} className="flex justify-between items-start">
+                      <div>
+                        <p className="text-sm font-semibold text-zinc-900">{svc.name}</p>
+                        <p className="text-xs text-zinc-400">{svc.duration_minutes}min</p>
+                      </div>
+                      <p className="text-sm font-bold text-zinc-900">R$ {Number(svc.price).toFixed(2)}</p>
+                    </div>
+                  ))}
+                  <div className="border-t border-zinc-200 pt-3 flex justify-between">
+                    <p className="text-sm font-bold text-zinc-900">Total</p>
+                    <p className="text-base font-black" style={{ color: primary }}>R$ {totalPrice.toFixed(2)}</p>
+                  </div>
+                </div>
+                <div className="space-y-2 text-sm text-zinc-600">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-zinc-400" />
+                    <span>{format(new Date(selectedSlot), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-zinc-400" />
+                    <span>{format(new Date(selectedSlot), 'HH:mm')} · {totalDuration}min</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 block">Observações (opcional)</label>
+                  <textarea className="w-full border-2 border-zinc-100 rounded-xl px-4 py-3 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none resize-none transition-colors"
+                    rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Alguma observação?" />
+                </div>
+              </div>
+            )}
+
+            {/* STEP: Success */}
+            {step === 'success' && (
+              <div className="py-8 text-center">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: primary + '20' }}>
+                  <Check className="w-8 h-8" style={{ color: primary }} />
+                </div>
+                <h3 className="text-xl font-black text-zinc-900">Agendado com sucesso!</h3>
+                <p className="text-sm text-zinc-500 mt-2">Você receberá uma confirmação em breve.</p>
+                <div className="mt-6 space-y-2 text-left bg-zinc-50 rounded-2xl p-4">
+                  <div className="flex items-center gap-2 text-sm text-zinc-600">
+                    <Calendar className="w-4 h-4 text-zinc-400" />
+                    <span>{format(new Date(selectedSlot), "dd/MM/yyyy 'às' HH:mm")}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-zinc-600">
+                    <Clock className="w-4 h-4 text-zinc-400" />
+                    <span>{totalDuration}min · R$ {totalPrice.toFixed(2)}</span>
+                  </div>
+                </div>
+                <div className="mt-6 space-y-2">
+                  <button className="w-full py-3.5 rounded-2xl text-white text-sm font-bold" style={{ backgroundColor: primary }}
+                    onClick={() => navigate(`/customer/tenants/${slug}/appointments`)}>
+                    Ver meus agendamentos
+                  </button>
+                  <button className="w-full py-3.5 rounded-2xl text-zinc-600 text-sm font-medium bg-zinc-100"
+                    onClick={() => { setDrawerOpen(false); setStep('services'); setSelectedServiceIds([]); setSelectedSlot(''); setSelectedDate('') }}>
+                    Fazer outro agendamento
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {step !== 'success' && (
+            <div className="px-6 py-4 border-t border-zinc-100 shrink-0">
+              {step === 'services' && (
+                <button disabled={selectedServiceIds.length === 0} onClick={() => setStep('datetime')}
+                  className="w-full py-4 rounded-2xl text-white text-sm font-bold transition-all disabled:opacity-30 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: primary }}>
+                  {selectedServiceIds.length === 0 ? 'Selecione um serviço' : `${selectedServiceIds.length} serviço${selectedServiceIds.length > 1 ? 's' : ''} · R$ ${totalPrice.toFixed(2)} · Continuar`}
+                  {selectedServiceIds.length > 0 && <ChevronRight className="w-4 h-4" />}
+                </button>
+              )}
+              {step === 'datetime' && (
+                <button disabled={!selectedSlot} onClick={() => setStep(isAuthenticated ? 'confirm' : 'auth')}
+                  className="w-full py-4 rounded-2xl text-white text-sm font-bold transition-all disabled:opacity-30 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: primary }}>
+                  {!selectedSlot ? 'Selecione um horário' : `Continuar · ${format(new Date(selectedSlot), 'HH:mm')} ${selectedDate}`}
+                  {selectedSlot && <ChevronRight className="w-4 h-4" />}
+                </button>
+              )}
+              {step === 'auth' && (
+                <button disabled={authMut.isPending || !authForm.email || !authForm.password} onClick={() => authMut.mutate()}
+                  className="w-full py-4 rounded-2xl text-white text-sm font-bold transition-all disabled:opacity-30"
+                  style={{ backgroundColor: primary }}>
+                  {authMut.isPending ? 'Aguarde...' : authMode === 'login' ? 'Entrar e continuar' : 'Criar conta e continuar'}
+                </button>
+              )}
+              {step === 'confirm' && (
+                <button disabled={bookMut.isPending} onClick={() => bookMut.mutate()}
+                  className="w-full py-4 rounded-2xl text-white text-sm font-bold transition-all disabled:opacity-30"
+                  style={{ backgroundColor: primary }}>
+                  {bookMut.isPending ? 'Agendando...' : 'Confirmar agendamento'}
+                </button>
               )}
             </div>
           )}
-
-          {/* STEP: Auth */}
-          {step === 'auth' && (
-            <div className="space-y-5">
-              <div className="flex bg-zinc-100 p-1 rounded-2xl gap-1">
-                {[['login', 'Entrar'], ['register', 'Criar conta']].map(([mode, label]) => (
-                  <button key={mode} onClick={() => setAuthMode(mode as typeof authMode)}
-                    className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${authMode === mode ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-400'}`}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <div className="space-y-3">
-                {authMode === 'register' && (
-                  <div>
-                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 block">Nome</label>
-                    <input className="w-full border-2 border-zinc-100 rounded-xl px-4 py-3 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none transition-colors"
-                      value={authForm.name} onChange={e => setAuthForm(f => ({ ...f, name: e.target.value }))} placeholder="Maria Silva" />
-                  </div>
-                )}
-                <div>
-                  <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 block">Email</label>
-                  <input type="email" className="w-full border-2 border-zinc-100 rounded-xl px-4 py-3 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none transition-colors"
-                    value={authForm.email} onChange={e => setAuthForm(f => ({ ...f, email: e.target.value }))} placeholder="maria@email.com" />
-                </div>
-                {authMode === 'register' && (
-                  <div>
-                    <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 block">WhatsApp</label>
-                    <input type="tel" className="w-full border-2 border-zinc-100 rounded-xl px-4 py-3 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none transition-colors"
-                      value={authForm.phone} onChange={e => setAuthForm(f => ({ ...f, phone: e.target.value }))} placeholder="11999999999" />
-                  </div>
-                )}
-                <div>
-                  <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 block">Senha</label>
-                  <input type="password" className="w-full border-2 border-zinc-100 rounded-xl px-4 py-3 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none transition-colors"
-                    value={authForm.password} onChange={e => setAuthForm(f => ({ ...f, password: e.target.value }))} placeholder="••••••••" />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* STEP: Confirm */}
-          {step === 'confirm' && (
-            <div className="space-y-4">
-              <div className="bg-zinc-50 rounded-2xl p-5 space-y-3">
-                {selectedServices.map(svc => (
-                  <div key={svc.id} className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-semibold text-zinc-900">{svc.name}</p>
-                      <p className="text-xs text-zinc-400">{svc.duration_minutes}min</p>
-                    </div>
-                    <p className="text-sm font-bold text-zinc-900">R$ {Number(svc.price).toFixed(2)}</p>
-                  </div>
-                ))}
-                <div className="border-t border-zinc-200 pt-3 flex justify-between">
-                  <p className="text-sm font-bold text-zinc-900">Total</p>
-                  <p className="text-base font-black" style={{ color: primary }}>R$ {totalPrice.toFixed(2)}</p>
-                </div>
-              </div>
-              <div className="space-y-2 text-sm text-zinc-600">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-zinc-400" />
-                  <span>{format(new Date(selectedSlot), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-zinc-400" />
-                  <span>{format(new Date(selectedSlot), 'HH:mm')} · {totalDuration}min</span>
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 block">Observações (opcional)</label>
-                <textarea className="w-full border-2 border-zinc-100 rounded-xl px-4 py-3 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none resize-none transition-colors"
-                  rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Alguma observação?" />
-              </div>
-            </div>
-          )}
-
-          {/* STEP: Success */}
-          {step === 'success' && (
-            <div className="py-8 text-center">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: primary + '20' }}>
-                <Check className="w-8 h-8" style={{ color: primary }} />
-              </div>
-              <h3 className="text-xl font-black text-zinc-900">Agendado com sucesso!</h3>
-              <p className="text-sm text-zinc-500 mt-2">Você receberá uma confirmação em breve.</p>
-              <div className="mt-6 space-y-2 text-left bg-zinc-50 rounded-2xl p-4">
-                <div className="flex items-center gap-2 text-sm text-zinc-600">
-                  <Calendar className="w-4 h-4 text-zinc-400" />
-                  <span>{format(new Date(selectedSlot), "dd/MM/yyyy 'às' HH:mm")}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-zinc-600">
-                  <Clock className="w-4 h-4 text-zinc-400" />
-                  <span>{totalDuration}min · R$ {totalPrice.toFixed(2)}</span>
-                </div>
-              </div>
-              <div className="mt-6 space-y-2">
-                <button className="w-full py-3.5 rounded-2xl text-white text-sm font-bold" style={{ backgroundColor: primary }}
-                  onClick={() => navigate(`/customer/tenants/${slug}/appointments`)}>
-                  Ver meus agendamentos
-                </button>
-                <button className="w-full py-3.5 rounded-2xl text-zinc-600 text-sm font-medium bg-zinc-100"
-                  onClick={() => { setDrawerOpen(false); setStep('services'); setSelectedServiceIds([]); setSelectedSlot(''); setSelectedDate('') }}>
-                  Fazer outro agendamento
-                </button>
-              </div>
-            </div>
-          )}
         </div>
-
-        {step !== 'success' && (
-          <div className="px-6 py-4 border-t border-zinc-100 shrink-0">
-            {step === 'services' && (
-              <button disabled={selectedServiceIds.length === 0} onClick={() => setStep('datetime')}
-                className="w-full py-4 rounded-2xl text-white text-sm font-bold transition-all disabled:opacity-30 flex items-center justify-center gap-2"
-                style={{ backgroundColor: primary }}>
-                {selectedServiceIds.length === 0 ? 'Selecione um serviço' : `${selectedServiceIds.length} serviço${selectedServiceIds.length > 1 ? 's' : ''} · R$ ${totalPrice.toFixed(2)} · Continuar`}
-                {selectedServiceIds.length > 0 && <ChevronRight className="w-4 h-4" />}
-              </button>
-            )}
-            {step === 'datetime' && (
-              <button disabled={!selectedSlot} onClick={() => setStep(isAuthenticated ? 'confirm' : 'auth')}
-                className="w-full py-4 rounded-2xl text-white text-sm font-bold transition-all disabled:opacity-30 flex items-center justify-center gap-2"
-                style={{ backgroundColor: primary }}>
-                {!selectedSlot ? 'Selecione um horário' : `Continuar · ${format(new Date(selectedSlot), 'HH:mm')} ${selectedDate}`}
-                {selectedSlot && <ChevronRight className="w-4 h-4" />}
-              </button>
-            )}
-            {step === 'auth' && (
-              <button disabled={authMut.isPending || !authForm.email || !authForm.password} onClick={() => authMut.mutate()}
-                className="w-full py-4 rounded-2xl text-white text-sm font-bold transition-all disabled:opacity-30"
-                style={{ backgroundColor: primary }}>
-                {authMut.isPending ? 'Aguarde...' : authMode === 'login' ? 'Entrar e continuar' : 'Criar conta e continuar'}
-              </button>
-            )}
-            {step === 'confirm' && (
-              <button disabled={bookMut.isPending} onClick={() => bookMut.mutate()}
-                className="w-full py-4 rounded-2xl text-white text-sm font-bold transition-all disabled:opacity-30"
-                style={{ backgroundColor: primary }}>
-                {bookMut.isPending ? 'Agendando...' : 'Confirmar agendamento'}
-              </button>
-            )}
-          </div>
-        )}
       </div>
-    </div>
-  )
-
-  // ── PAGE ──────────────────────────────────────────────────────────────────
-  return (
-    <div className="min-h-screen bg-white font-sans">
-      <Drawer />
 
       {/* ── Floating nav ─────────────────────────────────────────── */}
       <nav className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${!heroVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
