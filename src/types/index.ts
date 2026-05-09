@@ -201,6 +201,70 @@ export interface MediaFile {
   created_at: string
 }
 
+// Public booking page
+export interface PublicTenantInfo {
+  tenant: {
+    name: string
+    short_description?: string
+    category?: string
+    phone?: string
+    whatsapp?: string
+    address?: string
+    instagram?: string
+  }
+  theme: {
+    logo_url?: string
+    primary_color?: string
+    secondary_color?: string
+    background_color?: string
+    button_color?: string
+    font_family?: string
+  }
+  settings: {
+    show_prices?: boolean
+    show_duration?: boolean
+    allow_professional_choice?: boolean
+    allow_any_professional?: boolean
+    allow_multiple_services?: boolean
+    allow_customer_cancel?: boolean
+    allow_customer_reschedule?: boolean
+    require_customer_cpf?: boolean
+    require_terms_acceptance?: boolean
+    homepage_title?: string
+    homepage_subtitle?: string
+    confirmation_message?: string
+    terms_text?: string
+    cancellation_policy_text?: string
+  }
+  booking_policy: {
+    min_minutes_before_booking?: number
+    max_days_ahead_booking?: number
+    slot_interval_minutes?: number
+  }
+  business_hours: Array<{
+    weekday: number
+    open_time?: string
+    close_time?: string
+    is_closed: boolean
+  }>
+}
+
+export interface Professional {
+  id: string
+  name: string
+  bio?: string
+  photo_url?: string
+  service_ids?: string[]
+}
+
+export interface AppointmentCreate {
+  professional_id?: string
+  service_ids: string[]
+  start_datetime: string
+  customer_notes?: string
+  source?: string
+}
+
 // PlanCreate
 export interface PlanCreate {
   name: string

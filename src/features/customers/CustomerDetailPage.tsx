@@ -8,6 +8,8 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
+import { useAuthStore } from '@/stores/authStore'
+import { ExternalLink } from 'lucide-react'
 import { Plus } from 'lucide-react'
 
 export default function CustomerDetailPage() {
@@ -37,11 +39,31 @@ export default function CustomerDetailPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['customer-notes', customerId] }); setNoteText(''); toast.success('Nota adicionada') },
   })
 
+  const { user } = useAuthStore()
+
   if (isLoading || !customer) return <LoadingState />
+
+  const portalUrl = user?.tenant_slug
+    ? `${window.location.origin}/customer/login?slug=${user.tenant_slug}`
+    : null
 
   return (
     <div className="max-w-3xl">
-      <PageHeader title={customer.name} subtitle={customer.phone} />
+      <PageHeader
+        title={customer.name}
+        subtitle={customer.phone}
+        actions={portalUrl && customer.email ? (
+          <a
+            href={portalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-secondary text-xs flex items-center gap-1.5"
+            title="Abrir portal do cliente">
+            <ExternalLink className="w-3.5 h-3.5" />
+            Portal do cliente
+          </a>
+        ) : undefined}
+      />
 
       <div className="grid lg:grid-cols-3 gap-4 mb-4">
         <div className="card p-4">

@@ -2,7 +2,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Calendar, CalendarDays, Users, Scissors, Package, CreditCard,
   Settings, Building2, BookOpen, Bell, Zap, Headphones,
-  LogOut, ClipboardList, BarChart3, ClipboardCheck, Menu, X,
+  LogOut, ClipboardList, BarChart3, ClipboardCheck, Menu, X, TrendingUp, MessageCircle, Star, Tag, Images,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useState } from 'react'
@@ -22,6 +22,13 @@ const nav = [
   { section: 'Financeiro', items: [
     { to: '/app/payments', label: 'Pagamentos', icon: CreditCard },
     { to: '/app/commissions', label: 'Comissões', icon: BarChart3 },
+  ]},
+  { section: 'CRM', items: [
+    { to: '/app/lifecycle', label: 'Lifecycle / CRM', icon: TrendingUp },
+    { to: '/app/reports', label: 'Relatórios', icon: BarChart3 },
+    { to: '/app/reviews', label: 'Avaliações', icon: Star },
+    { to: '/app/coupons', label: 'Cupons', icon: Tag },
+    { to: '/app/procedure-photos', label: 'Fotos Before/After', icon: Images },
   ]},
   { section: 'Operações', items: [
     { to: '/app/schedule', label: 'Horários', icon: BookOpen },
