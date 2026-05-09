@@ -1,84 +1,89 @@
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
 import { ProtectedRoute, CustomerProtectedRoute } from '@/components/layout/ProtectedRoute'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { MasterLayout } from '@/components/layout/MasterLayout'
+import { LoadingState } from '@/components/feedback/LoadingState'
 
-// Auth
+// Auth (small, loaded eagerly — first paint)
 import LoginPage from '@/features/auth/LoginPage'
 import ForgotPasswordPage from '@/features/auth/ForgotPasswordPage'
 import CustomerLoginPage from '@/features/customer-auth/CustomerLoginPage'
 import CustomerRegisterPage from '@/features/customer-auth/CustomerRegisterPage'
 
-// Master
-import MasterDashboard from '@/features/master/MasterDashboard'
-import TenantsListPage from '@/features/master/TenantsListPage'
-import NewTenantPage from '@/features/master/NewTenantPage'
-import TenantDetailPage from '@/features/master/TenantDetailPage'
-import TenantFeaturesPage from '@/features/master/TenantFeaturesPage'
-import TenantLimitsPage from '@/features/master/TenantLimitsPage'
-import TenantAuditLogsPage from '@/features/master/TenantAuditLogsPage'
-import TenantSettingsPage from '@/features/master/TenantSettingsPage'
-import TenantThemePage from '@/features/master/TenantThemePage'
-import PlansListPage from '@/features/master/PlansListPage'
-import MasterInvoicesPage from '@/features/master/MasterInvoicesPage'
-import MasterJobsPage from '@/features/master/MasterJobsPage'
-import MasterTasksPage from '@/features/master/MasterTasksPage'
-import MasterNotificationsPage from '@/features/master/MasterNotificationsPage'
-import MasterSupportPage from '@/features/master/MasterSupportPage'
-import MasterPlatformPage from '@/features/master/MasterPlatformPage'
+// All other pages — lazy loaded
+const MasterDashboard = lazy(() => import('@/features/master/MasterDashboard'))
+const TenantsListPage = lazy(() => import('@/features/master/TenantsListPage'))
+const NewTenantPage = lazy(() => import('@/features/master/NewTenantPage'))
+const TenantDetailPage = lazy(() => import('@/features/master/TenantDetailPage'))
+const TenantFeaturesPage = lazy(() => import('@/features/master/TenantFeaturesPage'))
+const TenantLimitsPage = lazy(() => import('@/features/master/TenantLimitsPage'))
+const TenantAuditLogsPage = lazy(() => import('@/features/master/TenantAuditLogsPage'))
+const TenantSettingsPage = lazy(() => import('@/features/master/TenantSettingsPage'))
+const TenantThemePage = lazy(() => import('@/features/master/TenantThemePage'))
+const PlansListPage = lazy(() => import('@/features/master/PlansListPage'))
+const MasterInvoicesPage = lazy(() => import('@/features/master/MasterInvoicesPage'))
+const MasterJobsPage = lazy(() => import('@/features/master/MasterJobsPage'))
+const MasterTasksPage = lazy(() => import('@/features/master/MasterTasksPage'))
+const MasterNotificationsPage = lazy(() => import('@/features/master/MasterNotificationsPage'))
+const MasterSupportPage = lazy(() => import('@/features/master/MasterSupportPage'))
+const MasterPlatformPage = lazy(() => import('@/features/master/MasterPlatformPage'))
 
-// Tenant app
-import DashboardPage from '@/features/tenant-dashboard/DashboardPage'
-import AppointmentsPage from '@/features/appointments/AppointmentsPage'
-import NewAppointmentPage from '@/features/appointments/NewAppointmentPage'
-import AppointmentDetailPage from '@/features/appointments/AppointmentDetailPage'
-import CalendarPage from '@/features/appointments/CalendarPage'
-import ServicesPage from '@/features/services/ServicesPage'
-import ServiceFormPage from '@/features/services/ServiceFormPage'
-import ServiceCategoriesPage from '@/features/services/ServiceCategoriesPage'
-import ProfessionalsPage from '@/features/professionals/ProfessionalsPage'
-import ProfessionalDetailPage from '@/features/professionals/ProfessionalDetailPage'
-import CustomersPage from '@/features/customers/CustomersPage'
-import CustomerDetailPage from '@/features/customers/CustomerDetailPage'
-import PackagesPage from '@/features/packages/PackagesPage'
-import PaymentsPage from '@/features/payments/PaymentsPage'
-import SchedulePage from '@/features/schedule/SchedulePage'
-import AutomationsPage from '@/features/automations/AutomationsPage'
-import CommissionsPage from '@/features/commissions/CommissionsPage'
-import FormsPage from '@/features/forms/FormsPage'
-import UnitsPage from '@/features/units/UnitsPage'
-import WaitlistPage from '@/features/units/WaitlistPage'
-import ResourcesPage from '@/features/resources/ResourcesPage'
-import AuditLogsPage from '@/features/audit/AuditLogsPage'
-import MediaPage from '@/features/media/MediaPage'
-import NotificationsPage from '@/features/notifications/NotificationsPage'
-import SettingsPage from '@/features/settings/SettingsPage'
-import GeneralSettingsPage from '@/features/settings/GeneralSettingsPage'
-import BookingSettingsPage from '@/features/settings/BookingSettingsPage'
-import ThemeSettingsPage from '@/features/settings/ThemeSettingsPage'
-import WebhooksPage from '@/features/settings/WebhooksPage'
-import PaymentSettingsPage from '@/features/settings/PaymentSettingsPage'
-import NotificationSettingsPage from '@/features/settings/NotificationSettingsPage'
-import WhatsAppSettingsPage from '@/features/settings/WhatsAppSettingsPage'
-import LifecyclePage from '@/features/lifecycle/LifecyclePage'
-import ReportsPage from '@/features/reports/ReportsPage'
-import ReviewsPage from '@/features/reviews/ReviewsPage'
-import CouponsPage from '@/features/coupons/CouponsPage'
-import ProcedurePhotosPage from '@/features/procedure-photos/ProcedurePhotosPage'
+const DashboardPage = lazy(() => import('@/features/tenant-dashboard/DashboardPage'))
+const AppointmentsPage = lazy(() => import('@/features/appointments/AppointmentsPage'))
+const NewAppointmentPage = lazy(() => import('@/features/appointments/NewAppointmentPage'))
+const AppointmentDetailPage = lazy(() => import('@/features/appointments/AppointmentDetailPage'))
+const CalendarPage = lazy(() => import('@/features/appointments/CalendarPage'))
+const ServicesPage = lazy(() => import('@/features/services/ServicesPage'))
+const ServiceFormPage = lazy(() => import('@/features/services/ServiceFormPage'))
+const ServiceCategoriesPage = lazy(() => import('@/features/services/ServiceCategoriesPage'))
+const ProfessionalsPage = lazy(() => import('@/features/professionals/ProfessionalsPage'))
+const ProfessionalDetailPage = lazy(() => import('@/features/professionals/ProfessionalDetailPage'))
+const CustomersPage = lazy(() => import('@/features/customers/CustomersPage'))
+const CustomerDetailPage = lazy(() => import('@/features/customers/CustomerDetailPage'))
+const PackagesPage = lazy(() => import('@/features/packages/PackagesPage'))
+const PaymentsPage = lazy(() => import('@/features/payments/PaymentsPage'))
+const SchedulePage = lazy(() => import('@/features/schedule/SchedulePage'))
+const AutomationsPage = lazy(() => import('@/features/automations/AutomationsPage'))
+const CommissionsPage = lazy(() => import('@/features/commissions/CommissionsPage'))
+const FormsPage = lazy(() => import('@/features/forms/FormsPage'))
+const UnitsPage = lazy(() => import('@/features/units/UnitsPage'))
+const WaitlistPage = lazy(() => import('@/features/units/WaitlistPage'))
+const ResourcesPage = lazy(() => import('@/features/resources/ResourcesPage'))
+const AuditLogsPage = lazy(() => import('@/features/audit/AuditLogsPage'))
+const MediaPage = lazy(() => import('@/features/media/MediaPage'))
+const NotificationsPage = lazy(() => import('@/features/notifications/NotificationsPage'))
+const SettingsPage = lazy(() => import('@/features/settings/SettingsPage'))
+const GeneralSettingsPage = lazy(() => import('@/features/settings/GeneralSettingsPage'))
+const BookingSettingsPage = lazy(() => import('@/features/settings/BookingSettingsPage'))
+const ThemeSettingsPage = lazy(() => import('@/features/settings/ThemeSettingsPage'))
+const WebhooksPage = lazy(() => import('@/features/settings/WebhooksPage'))
+const PaymentSettingsPage = lazy(() => import('@/features/settings/PaymentSettingsPage'))
+const NotificationSettingsPage = lazy(() => import('@/features/settings/NotificationSettingsPage'))
+const WhatsAppSettingsPage = lazy(() => import('@/features/settings/WhatsAppSettingsPage'))
+const LifecyclePage = lazy(() => import('@/features/lifecycle/LifecyclePage'))
+const ReportsPage = lazy(() => import('@/features/reports/ReportsPage'))
+const ReviewsPage = lazy(() => import('@/features/reviews/ReviewsPage'))
+const CouponsPage = lazy(() => import('@/features/coupons/CouponsPage'))
+const ProcedurePhotosPage = lazy(() => import('@/features/procedure-photos/ProcedurePhotosPage'))
+const PublicBookingPage = lazy(() => import('@/features/public-booking/PublicBookingPage'))
+const CustomerAppointmentsPage = lazy(() => import('@/features/customer-portal/CustomerAppointmentsPage'))
+const CustomerPackagesPage = lazy(() => import('@/features/customer-portal/CustomerPackagesPage'))
+const CustomerProfilePage = lazy(() => import('@/features/customer-portal/CustomerProfilePage'))
 
-// Public
-import PublicBookingPage from '@/features/public-booking/PublicBookingPage'
+function Fallback() {
+  return <div className="flex items-center justify-center h-64"><LoadingState /></div>
+}
 
-// Customer portal
-import CustomerAppointmentsPage from '@/features/customer-portal/CustomerAppointmentsPage'
-import CustomerPackagesPage from '@/features/customer-portal/CustomerPackagesPage'
-import CustomerProfilePage from '@/features/customer-portal/CustomerProfilePage'
+function S(element: React.ReactNode) {
+  return <Suspense fallback={<Fallback />}>{element}</Suspense>
+}
 
 function M(page: React.ReactNode) {
-  return <ProtectedRoute requiredRole="super_admin"><MasterLayout>{page}</MasterLayout></ProtectedRoute>
+  return <ProtectedRoute requiredRole="super_admin"><MasterLayout>{S(page)}</MasterLayout></ProtectedRoute>
 }
 function A(page: React.ReactNode) {
-  return <ProtectedRoute><AppLayout>{page}</AppLayout></ProtectedRoute>
+  return <ProtectedRoute><AppLayout>{S(page)}</AppLayout></ProtectedRoute>
 }
 
 const router = createBrowserRouter([
@@ -141,13 +146,13 @@ const router = createBrowserRouter([
     path: '/app/settings',
     element: A(<SettingsPage />),
     children: [
-      { index: true, element: <GeneralSettingsPage /> },
-      { path: 'booking', element: <BookingSettingsPage /> },
-      { path: 'payment', element: <PaymentSettingsPage /> },
-      { path: 'theme', element: <ThemeSettingsPage /> },
-      { path: 'notifications', element: <NotificationSettingsPage /> },
-      { path: 'webhooks', element: <WebhooksPage /> },
-      { path: 'whatsapp', element: <WhatsAppSettingsPage /> },
+      { index: true, element: S(<GeneralSettingsPage />) },
+      { path: 'booking', element: S(<BookingSettingsPage />) },
+      { path: 'payment', element: S(<PaymentSettingsPage />) },
+      { path: 'theme', element: S(<ThemeSettingsPage />) },
+      { path: 'notifications', element: S(<NotificationSettingsPage />) },
+      { path: 'webhooks', element: S(<WebhooksPage />) },
+      { path: 'whatsapp', element: S(<WhatsAppSettingsPage />) },
     ],
   },
   { path: '/app/lifecycle', element: A(<LifecyclePage />) },
@@ -157,12 +162,12 @@ const router = createBrowserRouter([
   { path: '/app/procedure-photos', element: A(<ProcedurePhotosPage />) },
 
   // Public booking (mobile-first)
-  { path: '/:slug', element: <PublicBookingPage /> },
+  { path: '/:slug', element: S(<PublicBookingPage />) },
 
   // Customer portal (mobile-first)
-  { path: '/customer/tenants/:slug/appointments', element: <CustomerProtectedRoute><CustomerAppointmentsPage /></CustomerProtectedRoute> },
-  { path: '/customer/tenants/:slug/packages', element: <CustomerProtectedRoute><CustomerPackagesPage /></CustomerProtectedRoute> },
-  { path: '/customer/tenants/:slug/profile', element: <CustomerProtectedRoute><CustomerProfilePage /></CustomerProtectedRoute> },
+  { path: '/customer/tenants/:slug/appointments', element: <CustomerProtectedRoute>{S(<CustomerAppointmentsPage />)}</CustomerProtectedRoute> },
+  { path: '/customer/tenants/:slug/packages', element: <CustomerProtectedRoute>{S(<CustomerPackagesPage />)}</CustomerProtectedRoute> },
+  { path: '/customer/tenants/:slug/profile', element: <CustomerProtectedRoute>{S(<CustomerProfilePage />)}</CustomerProtectedRoute> },
 
   { path: '*', element: <Navigate to="/login" replace /> },
 ])

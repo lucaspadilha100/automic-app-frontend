@@ -2,14 +2,29 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/api/client'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { LoadingState } from '@/components/feedback/LoadingState'
-import { subDays, format, startOfMonth, subMonths } from 'date-fns'
+import { subDays, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useState } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend,
 } from 'recharts'
-import { BarChart3, TrendingUp, Users, Clock } from 'lucide-react'
+import { BarChart3, Clock, Lock } from 'lucide-react'
+
+function FeatureUnavailable() {
+  return (
+    <div className="card p-12 flex flex-col items-center justify-center text-center space-y-3">
+      <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center">
+        <Lock className="w-5 h-5 text-amber-500" />
+      </div>
+      <h3 className="text-sm font-bold text-slate-800">Recurso não disponível no seu plano</h3>
+      <p className="text-xs text-slate-500 max-w-xs">
+        Os relatórios avançados requerem a feature <code className="bg-slate-100 px-1 rounded">advanced_reports</code> habilitada.
+        Peça ao administrador master para ativar no painel de features do tenant.
+      </p>
+    </div>
+  )
+}
 
 const PRESETS = [
   { label: '7 dias', days: 7 },
@@ -47,20 +62,27 @@ export default function ReportsPage() {
   const dateTo = format(new Date(), 'yyyy-MM-dd')
   const params = { date_from: dateFrom, date_to: dateTo }
 
-  const { data: byStatus, isLoading: l1 } = useQuery<ByStatus[]>({
+  const { data: byStatus, isLoading: l1, error: e1 } = useQuery<ByStatus[]>({
     queryKey: ['reports', 'by-status', dateFrom, dateTo],
     queryFn: async () => (await apiClient.get('/reports/appointments-by-status', { params })).data,
+    retry: false,
   })
 
   const { data: byProfessional, isLoading: l2 } = useQuery<ByProfessional[]>({
     queryKey: ['reports', 'by-professional', dateFrom, dateTo],
     queryFn: async () => (await apiClient.get('/reports/revenue-by-professional', { params })).data,
+    retry: false,
   })
 
   const { data: byService, isLoading: l3 } = useQuery<ByService[]>({
     queryKey: ['reports', 'by-service', dateFrom, dateTo],
     queryFn: async () => (await apiClient.get('/reports/revenue-by-service', { params })).data,
+    retry: false,
   })
+
+  // Feature flag blocked — show upgrade message instead of empty page
+  const isFeatureLocked = (e1 as { response?: { status: number } } | null)?.response?.status === 403
+  if (!l1 && isFeatureLocked) return <><PageHeader title="Relatórios" /><FeatureUnavailable /></>
 
   const { data: newCustomers } = useQuery<NewCustomers[]>({
     queryKey: ['reports', 'new-customers'],

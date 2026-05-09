@@ -3,7 +3,7 @@ import { apiClient, extractApiError } from '@/api/client'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { LoadingState } from '@/components/feedback/LoadingState'
 import { EmptyState } from '@/components/feedback/EmptyState'
-import { Images, Upload, X, ChevronDown, ChevronUp, Trash2, Eye, EyeOff } from 'lucide-react'
+import { Images, Upload, X, ChevronDown, ChevronUp, Trash2, Eye, EyeOff, Lock } from 'lucide-react'
 import { useState, useRef } from 'react'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -188,12 +188,31 @@ function PhotoGallery({ procedureId }: { procedureId: string }) {
 export default function ProcedurePhotosPage() {
   const [expanded, setExpanded] = useState<string | null>(null)
 
-  const { data: histories, isLoading } = useQuery<ProcedureHistory[]>({
+  const { data: histories, isLoading, error } = useQuery<ProcedureHistory[]>({
     queryKey: ['procedure-histories'],
     queryFn: async () => (await apiClient.get('/admin/procedure-history')).data,
+    retry: false,
   })
 
   if (isLoading) return <LoadingState />
+
+  if ((error as { response?: { status: number } } | null)?.response?.status === 403) {
+    return (
+      <>
+        <PageHeader title="Fotos Before & After" />
+        <div className="card p-12 flex flex-col items-center justify-center text-center space-y-3">
+          <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center">
+            <Lock className="w-5 h-5 text-amber-500" />
+          </div>
+          <h3 className="text-sm font-bold text-slate-800">Recurso não disponível no seu plano</h3>
+          <p className="text-xs text-slate-500 max-w-xs">
+            As fotos before/after requerem a feature <code className="bg-slate-100 px-1 rounded">before_after_photos</code> habilitada.
+            Peça ao administrador master para ativar no painel de features do tenant.
+          </p>
+        </div>
+      </>
+    )
+  }
 
   return (
     <div className="space-y-5 animate-fade-in">
