@@ -61,6 +61,10 @@ import PaymentSettingsPage from '@/features/settings/PaymentSettingsPage'
 import NotificationSettingsPage from '@/features/settings/NotificationSettingsPage'
 import WhatsAppSettingsPage from '@/features/settings/WhatsAppSettingsPage'
 import LifecyclePage from '@/features/lifecycle/LifecyclePage'
+import ReportsPage from '@/features/reports/ReportsPage'
+import ReviewsPage from '@/features/reviews/ReviewsPage'
+import CouponsPage from '@/features/coupons/CouponsPage'
+import ProcedurePhotosPage from '@/features/procedure-photos/ProcedurePhotosPage'
 
 // Public
 import PublicBookingPage from '@/features/public-booking/PublicBookingPage'
@@ -147,6 +151,10 @@ const router = createBrowserRouter([
     ],
   },
   { path: '/app/lifecycle', element: A(<LifecyclePage />) },
+  { path: '/app/reports', element: A(<ReportsPage />) },
+  { path: '/app/reviews', element: A(<ReviewsPage />) },
+  { path: '/app/coupons', element: A(<CouponsPage />) },
+  { path: '/app/procedure-photos', element: A(<ProcedurePhotosPage />) },
 
   // Public booking (mobile-first)
   { path: '/:slug', element: <PublicBookingPage /> },
