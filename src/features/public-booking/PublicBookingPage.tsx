@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { publicApi } from '@/api/public.api'
@@ -7,12 +7,14 @@ import { useCustomerAuthStore } from '@/stores/customerAuthStore'
 import { LoadingState } from '@/components/feedback/LoadingState'
 import {
   ChevronRight, ChevronLeft, Clock, Check, Calendar, MapPin, Phone,
-  Star, Images, AtSign, X,
+  Star, AtSign, X,
 } from 'lucide-react'
 import { format, addDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import toast from 'react-hot-toast'
 import { extractApiError } from '@/api/client'
+
+const PremiumBookingPage = lazy(() => import('./PremiumBookingPage'))
 
 type Step = 'home' | 'datetime' | 'auth' | 'confirm' | 'success'
 
@@ -140,6 +142,14 @@ export default function PublicBookingPage() {
       <p className="text-slate-500">Empresa não encontrada</p>
     </div>
   )
+
+  if (info.theme?.theme_preset === 'premium') {
+    return (
+      <Suspense fallback={<LoadingState />}>
+        <PremiumBookingPage />
+      </Suspense>
+    )
+  }
 
   // ── Sticky header (used in booking steps) ────────────────────────────────
   const BookingHeader = ({ onBack }: { onBack: () => void }) => (
