@@ -94,7 +94,7 @@ export default function PremiumBookingPage() {
     }
   })
 
-  const { data: slots, isLoading: slotsLoading } = useQuery({
+  const { data: slots, isLoading: slotsLoading, isError: slotsError } = useQuery({
     queryKey: ['public', slug, 'slots', selectedDate, selectedServiceIds.join(','), selectedProfId],
     queryFn: () => publicApi.getAvailability(slug!, {
       service_ids: selectedServiceIds,
@@ -102,6 +102,7 @@ export default function PremiumBookingPage() {
       professional_id: selectedProfId || undefined,
     }),
     enabled: !!selectedDate && selectedServiceIds.length > 0,
+    retry: false,
   })
 
   const bookMut = useMutation({
@@ -289,10 +290,15 @@ export default function PremiumBookingPage() {
                     <div className="grid grid-cols-4 gap-2">
                       {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-11 bg-zinc-100 rounded-xl animate-pulse" />)}
                     </div>
+                  ) : slotsError ? (
+                    <div className="py-8 text-center">
+                      <p className="text-sm text-red-400">Erro ao buscar horários. Verifique o console.</p>
+                    </div>
                   ) : !(slots as { start_datetime: string }[])?.length ? (
                     <div className="py-8 text-center">
                       <Calendar className="w-8 h-8 text-zinc-300 mx-auto mb-2" />
-                      <p className="text-sm text-zinc-400">Nenhum horário disponível</p>
+                      <p className="text-sm text-zinc-400">Nenhum horário disponível nesta data</p>
+                      <p className="text-xs text-zinc-300 mt-1">IDs: {selectedServiceIds.join(', ').slice(0, 30)}</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-4 gap-2">
