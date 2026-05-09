@@ -15,7 +15,8 @@ import {
 } from 'lucide-react'
 
 type Step = 'services' | 'datetime' | 'auth' | 'confirm' | 'success'
-const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+// Backend uses Python weekday: 0=Mon, 1=Tue, ..., 5=Sat, 6=Sun
+const WEEKDAYS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
 
 type BH = { weekday: number; open_time?: string; close_time?: string; is_closed: boolean }
 type Service = { id: string; name: string; description?: string; duration_minutes: number; price: number; category_id?: string }
@@ -146,9 +147,10 @@ export default function PremiumBookingPage() {
     return () => clearInterval(t)
   }, [profsArr.length])
 
-  // "Aberto agora" logic
+  // "Aberto agora" logic — convert JS getDay() (0=Sun) to Python weekday (0=Mon)
   const nowDate = new Date()
-  const currentDay = nowDate.getDay()
+  const jsDay = nowDate.getDay()
+  const currentDay = jsDay === 0 ? 6 : jsDay - 1
   const currentTimeStr = `${String(nowDate.getHours()).padStart(2, '0')}:${String(nowDate.getMinutes()).padStart(2, '0')}`
   const todayBH = info?.business_hours?.find((bh: BH) => bh.weekday === currentDay) as BH | undefined
   const isOpenNow = todayBH && !todayBH.is_closed &&

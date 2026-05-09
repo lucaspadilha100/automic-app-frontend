@@ -18,7 +18,8 @@ const PremiumBookingPage = lazy(() => import('./PremiumBookingPage'))
 
 type Step = 'home' | 'datetime' | 'auth' | 'confirm' | 'success'
 
-const WEEKDAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+// Backend Python weekday: 0=Mon ... 5=Sat, 6=Sun
+const WEEKDAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
 
 const PHOTO_TYPE_LABELS: Record<string, string> = {
   before: 'Antes', after: 'Depois', progress: 'Progresso', other: 'Portfolio',
