@@ -7,7 +7,7 @@ import { useCustomerAuthStore } from '@/stores/customerAuthStore'
 import { LoadingState } from '@/components/feedback/LoadingState'
 import {
   ChevronRight, ChevronLeft, Clock, Check, Calendar, MapPin, Phone,
-  Star, Images, Instagram, X,
+  Star, Images, AtSign, X,
 } from 'lucide-react'
 import { format, addDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -189,7 +189,7 @@ export default function PublicBookingPage() {
             )}
             {info.tenant?.instagram && (
               <a href={`https://instagram.com/${info.tenant.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 hover:text-white">
-                <Instagram className="w-3.5 h-3.5" /> {info.tenant.instagram}
+                <AtSign className="w-3.5 h-3.5" /> {info.tenant.instagram}
               </a>
             )}
           </div>
