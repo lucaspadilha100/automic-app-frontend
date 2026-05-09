@@ -2,11 +2,10 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { publicApi } from '@/api/public.api'
-import { customerApiClient, CUSTOMER_TOKEN_KEY } from '@/api/client'
 import { customerAuthApi } from '@/api/customerAuth.api'
 import { useCustomerAuthStore } from '@/stores/customerAuthStore'
 import { LoadingState } from '@/components/feedback/LoadingState'
-import { ChevronRight, ChevronLeft, Clock, Check, Calendar, User, MapPin, Phone, Mail } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Clock, Check, Calendar, MapPin, Phone } from 'lucide-react'
 import { format, addDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import toast from 'react-hot-toast'
@@ -56,17 +55,12 @@ export default function PublicBookingPage() {
   })
 
   const bookMut = useMutation({
-    mutationFn: async () => {
-      const token = localStorage.getItem(CUSTOMER_TOKEN_KEY)
-      const client = token ? customerApiClient : publicApi as unknown as typeof customerApiClient
-      const r = await customerApiClient.post(`/public/${slug}/appointments`, {
-        professional_id: selectedProfId || (professionals as {id:string}[])?.[0]?.id,
-        service_ids: selectedServiceIds,
-        start_datetime: selectedSlot,
-        customer_notes: notes,
-      })
-      return r.data
-    },
+    mutationFn: () => publicApi.createAppointment(slug!, {
+      professional_id: selectedProfId || (professionals as {id:string}[])?.[0]?.id,
+      service_ids: selectedServiceIds,
+      start_datetime: selectedSlot,
+      customer_notes: notes,
+    }),
     onSuccess: (d: {id:string}) => { setCreatedId(d.id); setStep('success') },
     onError: (e: unknown) => toast.error(extractApiError(e)),
   })
@@ -89,7 +83,8 @@ export default function PublicBookingPage() {
     onError: (e: unknown) => toast.error(extractApiError(e)),
   })
 
-  const primaryColor = info?.primary_color || '#22d3ee'
+  const primaryColor = info?.theme?.primary_color || '#22d3ee'
+  const tenantName = info?.tenant?.name || ''
 
   if (isLoading) return <LoadingState />
   if (!info) return (
@@ -102,10 +97,10 @@ export default function PublicBookingPage() {
   const Header = () => (
     <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-4 py-3 flex items-center gap-3">
       <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: primaryColor + '20' }}>
-        <span className="font-black text-sm" style={{ color: primaryColor }}>{(info.public_name || info.name || 'A').charAt(0)}</span>
+        <span className="font-black text-sm" style={{ color: primaryColor }}>{(tenantName || 'A').charAt(0)}</span>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-slate-900 text-sm truncate">{info.public_name || info.name}</p>
+        <p className="font-bold text-slate-900 text-sm truncate">{tenantName}</p>
         {step !== 'services' && (
           <p className="text-xs text-slate-400">
             {step === 'datetime' && 'Escolha data e horário'}
@@ -133,12 +128,13 @@ export default function PublicBookingPage() {
 
       {/* Hero */}
       <div className="px-4 py-6 text-center" style={{ background: `linear-gradient(135deg, ${primaryColor}15 0%, ${primaryColor}05 100%)` }}>
-        {info.logo_url && <img src={info.logo_url} alt="" className="w-16 h-16 rounded-2xl mx-auto mb-3 object-cover" />}
-        <h1 className="text-xl font-black text-slate-900">{info.public_name || info.name}</h1>
-        {info.description && <p className="text-sm text-slate-500 mt-1 max-w-xs mx-auto">{info.description}</p>}
+        {info.theme?.logo_url && <img src={info.theme.logo_url} alt="" className="w-16 h-16 rounded-2xl mx-auto mb-3 object-cover" />}
+        <h1 className="text-xl font-black text-slate-900">{tenantName}</h1>
+        {info.tenant?.short_description && <p className="text-sm text-slate-500 mt-1 max-w-xs mx-auto">{info.tenant.short_description}</p>}
+        {info.settings?.homepage_subtitle && <p className="text-sm text-slate-500 mt-1 max-w-xs mx-auto">{info.settings.homepage_subtitle}</p>}
         <div className="flex items-center justify-center gap-4 mt-3 text-xs text-slate-400">
-          {info.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {info.phone}</span>}
-          {info.address && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {info.address}</span>}
+          {info.tenant?.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {info.tenant.phone}</span>}
+          {info.tenant?.address && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {info.tenant.address}</span>}
         </div>
       </div>
 

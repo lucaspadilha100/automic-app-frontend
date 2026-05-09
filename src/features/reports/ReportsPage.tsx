@@ -9,7 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend,
 } from 'recharts'
-import { BarChart3, Clock, Lock } from 'lucide-react'
+import { BarChart3, Clock, Lock, TrendingUp } from 'lucide-react'
 
 function FeatureUnavailable() {
   return (
