@@ -11,12 +11,17 @@ import toast from 'react-hot-toast'
 import { extractApiError } from '@/api/client'
 import {
   X, ChevronRight, ChevronLeft, Check, Clock, MapPin, Phone,
-  AtSign, Star, Calendar, ChevronDown, Plus, Minus,
+  AtSign, Star, Calendar, ChevronDown, ChevronUp,
 } from 'lucide-react'
 
 type Step = 'services' | 'datetime' | 'auth' | 'confirm' | 'success'
-
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+
+type BH = { weekday: number; open_time?: string; close_time?: string; is_closed: boolean }
+type Service = { id: string; name: string; description?: string; duration_minutes: number; price: number; category_id?: string }
+type Prof = { id: string; name: string; bio?: string; photo_url?: string }
+type Review = { id: string; rating: number; comment: string | null; reviewer_name: string | null; created_at: string }
+type Photo = { id: string; photo_type: string; caption: string | null; file_url: string | null; created_at: string }
 
 export default function PremiumBookingPage() {
   const { slug } = useParams<{ slug: string }>()
@@ -26,14 +31,16 @@ export default function PremiumBookingPage() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [step, setStep] = useState<Step>('services')
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([])
-  const [selectedProfId, setSelectedProfId] = useState<string>('')
-  const [selectedDate, setSelectedDate] = useState<string>('')
-  const [selectedSlot, setSelectedSlot] = useState<string>('')
+  const [selectedProfId, setSelectedProfId] = useState('')
+  const [selectedDate, setSelectedDate] = useState('')
+  const [selectedSlot, setSelectedSlot] = useState('')
   const [notes, setNotes] = useState('')
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
   const [authForm, setAuthForm] = useState({ name: '', email: '', phone: '', password: '' })
   const [lightbox, setLightbox] = useState<string | null>(null)
   const [heroVisible, setHeroVisible] = useState(true)
+  const [profIdx, setProfIdx] = useState(0)
+  const [hoursExpanded, setHoursExpanded] = useState(false)
   const heroRef = useRef<HTMLDivElement>(null)
 
   const { data: info, isLoading } = useQuery({
@@ -51,7 +58,7 @@ export default function PremiumBookingPage() {
     queryFn: () => publicApi.getProfessionals(slug!),
     enabled: !!slug,
   })
-  const { data: photos = [] } = useQuery<Array<{ id: string; photo_type: string; caption: string | null; file_url: string | null; created_at: string }>>({
+  const { data: photos = [] } = useQuery<Photo[]>({
     queryKey: ['public', slug, 'photos'],
     queryFn: async () => {
       const { publicApiClient } = await import('@/api/client')
@@ -60,7 +67,7 @@ export default function PremiumBookingPage() {
     },
     enabled: !!slug,
   })
-  const { data: reviews = [] } = useQuery<Array<{ id: string; rating: number; comment: string | null; reviewer_name: string | null; created_at: string }>>({
+  const { data: reviews = [] } = useQuery<Review[]>({
     queryKey: ['public', slug, 'reviews'],
     queryFn: async () => {
       const { publicApiClient } = await import('@/api/client')
@@ -70,20 +77,29 @@ export default function PremiumBookingPage() {
     enabled: !!slug,
   })
 
-  const services = (servicesData?.services ?? []) as Array<{ id: string; name: string; description?: string; duration_minutes: number; price: number; category_id?: string }>
-  const profsArr = (professionals ?? []) as Array<{ id: string; name: string; bio?: string; photo_url?: string }>
+  const services = (servicesData?.services ?? []) as Service[]
+  const profsArr = (professionals ?? []) as Prof[]
   const selectedServices = services.filter(s => selectedServiceIds.includes(s.id))
   const totalDuration = selectedServices.reduce((a, s) => a + (s.duration_minutes || 0), 0)
   const totalPrice = selectedServices.reduce((a, s) => a + (s.price || 0), 0)
 
   const dates = Array.from({ length: 30 }, (_, i) => {
     const d = addDays(new Date(), i + 1)
-    return { date: format(d, 'yyyy-MM-dd'), label: format(d, 'EEE dd/MM', { locale: ptBR }), day: format(d, 'dd'), month: format(d, 'MMM', { locale: ptBR }), weekday: format(d, 'EEE', { locale: ptBR }) }
+    return {
+      date: format(d, 'yyyy-MM-dd'),
+      day: format(d, 'dd'),
+      month: format(d, 'MMM', { locale: ptBR }),
+      weekday: format(d, 'EEE', { locale: ptBR }),
+    }
   })
 
   const { data: slots, isLoading: slotsLoading } = useQuery({
     queryKey: ['public', slug, 'slots', selectedDate, selectedServiceIds.join(','), selectedProfId],
-    queryFn: () => publicApi.getAvailability(slug!, { service_ids: selectedServiceIds, target_date: selectedDate, professional_id: selectedProfId || undefined }),
+    queryFn: () => publicApi.getAvailability(slug!, {
+      service_ids: selectedServiceIds,
+      target_date: selectedDate,
+      professional_id: selectedProfId || undefined,
+    }),
     enabled: !!selectedDate && selectedServiceIds.length > 0,
   })
 
@@ -116,11 +132,28 @@ export default function PremiumBookingPage() {
     onError: (e: unknown) => toast.error(extractApiError(e)),
   })
 
+  // Hero visibility observer (for floating nav)
   useEffect(() => {
     const observer = new IntersectionObserver(([e]) => setHeroVisible(e.isIntersecting), { threshold: 0.1 })
     if (heroRef.current) observer.observe(heroRef.current)
     return () => observer.disconnect()
   }, [])
+
+  // Professional carousel auto-advance
+  useEffect(() => {
+    if (profsArr.length <= 1) return
+    const t = setInterval(() => setProfIdx(i => (i + 1) % profsArr.length), 4500)
+    return () => clearInterval(t)
+  }, [profsArr.length])
+
+  // "Aberto agora" logic
+  const nowDate = new Date()
+  const currentDay = nowDate.getDay()
+  const currentTimeStr = `${String(nowDate.getHours()).padStart(2, '0')}:${String(nowDate.getMinutes()).padStart(2, '0')}`
+  const todayBH = info?.business_hours?.find((bh: BH) => bh.weekday === currentDay) as BH | undefined
+  const isOpenNow = todayBH && !todayBH.is_closed &&
+    currentTimeStr >= (todayBH.open_time?.slice(0, 5) ?? '99:99') &&
+    currentTimeStr < (todayBH.close_time?.slice(0, 5) ?? '00:00')
 
   const primary = info?.theme?.primary_color || '#c9a96e'
   const tenantName = info?.tenant?.name || ''
@@ -131,7 +164,6 @@ export default function PremiumBookingPage() {
     setStep('services')
     setDrawerOpen(true)
   }
-
   function toggleService(id: string) {
     setSelectedServiceIds(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id])
   }
@@ -143,26 +175,26 @@ export default function PremiumBookingPage() {
     </div>
   )
 
-  // ── DRAWER ──────────────────────────────────────────────────────────────────
+  const hasAbout = info.settings?.homepage_title || info.settings?.homepage_subtitle || info.tenant?.short_description
+
+  // ── BOOKING DRAWER ────────────────────────────────────────────────────────
   const Drawer = () => (
     <div className={`fixed inset-0 z-50 transition-all duration-300 ${drawerOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} />
-      <div className={`absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl transition-transform duration-500 ease-out max-h-[92vh] overflow-hidden flex flex-col ${drawerOpen ? 'translate-y-0' : 'translate-y-full'}`}>
-        {/* Handle */}
-        <div className="flex justify-center pt-3 pb-1 shrink-0">
+      <div className={`absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl transition-transform duration-500 ease-out max-h-[92vh] overflow-hidden flex flex-col lg:max-w-lg lg:left-auto lg:right-6 lg:bottom-6 lg:rounded-3xl ${drawerOpen ? 'translate-y-0' : 'translate-y-full'}`}>
+        <div className="flex justify-center pt-3 pb-1 shrink-0 lg:hidden">
           <div className="w-10 h-1 rounded-full bg-zinc-200" />
         </div>
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 pb-4 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 shrink-0 border-b border-zinc-50">
           <div>
             {step !== 'services' && step !== 'success' && (
-              <button onClick={() => setStep(step === 'datetime' ? 'services' : step === 'auth' ? 'datetime' : step === 'confirm' ? (isAuthenticated ? 'datetime' : 'auth') : 'services')}
-                className="flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 mb-1">
-                <ChevronLeft className="w-4 h-4" /> Voltar
+              <button
+                onClick={() => setStep(step === 'datetime' ? 'services' : step === 'auth' ? 'datetime' : step === 'confirm' ? (isAuthenticated ? 'datetime' : 'auth') : 'services')}
+                className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-900 mb-1 transition-colors">
+                <ChevronLeft className="w-3.5 h-3.5" /> Voltar
               </button>
             )}
-            <h2 className="text-lg font-bold text-zinc-900">
+            <h2 className="text-base font-bold text-zinc-900">
               {step === 'services' && 'Escolha os serviços'}
               {step === 'datetime' && 'Data & horário'}
               {step === 'auth' && 'Identificação'}
@@ -170,24 +202,21 @@ export default function PremiumBookingPage() {
               {step === 'success' && 'Agendado!'}
             </h2>
           </div>
-          <button onClick={() => setDrawerOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200">
+          <button onClick={() => setDrawerOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 transition-colors">
             <X className="w-4 h-4 text-zinc-600" />
           </button>
         </div>
 
-        {/* Steps dots */}
         {step !== 'success' && (
-          <div className="flex gap-1.5 px-6 pb-4 shrink-0">
+          <div className="flex gap-1.5 px-6 pt-3 pb-1 shrink-0">
             {(['services', 'datetime', 'auth', 'confirm'] as Step[]).map((s, i) => (
-              <div key={s} className="h-1 flex-1 rounded-full transition-all"
+              <div key={s} className="h-1 flex-1 rounded-full transition-all duration-300"
                 style={{ backgroundColor: ['services', 'datetime', 'auth', 'confirm'].indexOf(step) >= i ? primary : '#e4e4e7' }} />
             ))}
           </div>
         )}
 
-        {/* Content */}
-        <div className="overflow-y-auto flex-1 px-6 pb-6">
-
+        <div className="overflow-y-auto flex-1 px-6 pb-6 pt-4">
           {/* STEP: Services */}
           {step === 'services' && (
             <div className="space-y-2">
@@ -195,8 +224,10 @@ export default function PremiumBookingPage() {
                 const sel = selectedServiceIds.includes(svc.id)
                 return (
                   <button key={svc.id} onClick={() => toggleService(svc.id)}
-                    className={`w-full text-left p-4 rounded-2xl border-2 transition-all flex items-center gap-4 ${sel ? 'border-zinc-900 bg-zinc-50' : 'border-zinc-100 bg-white hover:border-zinc-200'}`}>
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${sel ? 'bg-zinc-900 border-zinc-900' : 'border-zinc-300'}`}>
+                    className={`w-full text-left p-4 rounded-2xl border-2 transition-all flex items-center gap-4 ${sel ? 'bg-zinc-50' : 'border-zinc-100 bg-white hover:border-zinc-200'}`}
+                    style={sel ? { borderColor: primary } : {}}>
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all`}
+                      style={sel ? { backgroundColor: primary, borderColor: primary } : { borderColor: '#d4d4d8' }}>
                       {sel && <Check className="w-3.5 h-3.5 text-white" />}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -220,26 +251,28 @@ export default function PremiumBookingPage() {
                   <div className="flex gap-2 overflow-x-auto pb-1">
                     {info.settings?.allow_any_professional !== false && (
                       <button onClick={() => setSelectedProfId('')}
-                        className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all ${!selectedProfId ? 'bg-zinc-900 text-white border-zinc-900' : 'border-zinc-200 text-zinc-600'}`}>
+                        className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all ${!selectedProfId ? 'text-white border-transparent' : 'border-zinc-200 text-zinc-600 bg-white'}`}
+                        style={!selectedProfId ? { backgroundColor: primary } : {}}>
                         Qualquer
                       </button>
                     )}
                     {profsArr.map(p => (
                       <button key={p.id} onClick={() => setSelectedProfId(p.id)}
-                        className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all ${selectedProfId === p.id ? 'bg-zinc-900 text-white border-zinc-900' : 'border-zinc-200 text-zinc-600'}`}>
+                        className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all ${selectedProfId === p.id ? 'text-white border-transparent' : 'border-zinc-200 text-zinc-600 bg-white'}`}
+                        style={selectedProfId === p.id ? { backgroundColor: primary } : {}}>
                         {p.name}
                       </button>
                     ))}
                   </div>
                 </div>
               )}
-
               <div>
                 <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">Data</p>
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {dates.map(({ date, day, month, weekday }) => (
                     <button key={date} onClick={() => { setSelectedDate(date); setSelectedSlot('') }}
-                      className={`flex-shrink-0 flex flex-col items-center w-14 py-3 rounded-2xl border-2 transition-all ${selectedDate === date ? 'bg-zinc-900 text-white border-zinc-900' : 'border-zinc-100 text-zinc-700 hover:border-zinc-300'}`}>
+                      className={`flex-shrink-0 flex flex-col items-center w-14 py-3 rounded-2xl border-2 transition-all ${selectedDate === date ? 'text-white border-transparent' : 'border-zinc-100 text-zinc-700 hover:border-zinc-300'}`}
+                      style={selectedDate === date ? { backgroundColor: primary } : {}}>
                       <span className="text-[10px] font-medium uppercase opacity-70">{weekday}</span>
                       <span className="text-xl font-black leading-tight">{day}</span>
                       <span className="text-[10px] opacity-70">{month}</span>
@@ -247,7 +280,6 @@ export default function PremiumBookingPage() {
                   ))}
                 </div>
               </div>
-
               {selectedDate && (
                 <div>
                   <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">Horário</p>
@@ -267,7 +299,8 @@ export default function PremiumBookingPage() {
                         const sel = selectedSlot === slot.start_datetime
                         return (
                           <button key={slot.start_datetime} onClick={() => setSelectedSlot(slot.start_datetime)}
-                            className={`py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${sel ? 'bg-zinc-900 text-white border-zinc-900' : 'border-zinc-100 text-zinc-700 hover:border-zinc-300'}`}>
+                            className={`py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${sel ? 'text-white border-transparent' : 'border-zinc-100 text-zinc-700 hover:border-zinc-300'}`}
+                            style={sel ? { backgroundColor: primary } : {}}>
                             {time}
                           </button>
                         )
@@ -387,12 +420,10 @@ export default function PremiumBookingPage() {
           )}
         </div>
 
-        {/* Footer CTA */}
         {step !== 'success' && (
           <div className="px-6 py-4 border-t border-zinc-100 shrink-0">
             {step === 'services' && (
-              <button disabled={selectedServiceIds.length === 0}
-                onClick={() => setStep('datetime')}
+              <button disabled={selectedServiceIds.length === 0} onClick={() => setStep('datetime')}
                 className="w-full py-4 rounded-2xl text-white text-sm font-bold transition-all disabled:opacity-30 flex items-center justify-center gap-2"
                 style={{ backgroundColor: primary }}>
                 {selectedServiceIds.length === 0 ? 'Selecione um serviço' : `${selectedServiceIds.length} serviço${selectedServiceIds.length > 1 ? 's' : ''} · R$ ${totalPrice.toFixed(2)} · Continuar`}
@@ -400,8 +431,7 @@ export default function PremiumBookingPage() {
               </button>
             )}
             {step === 'datetime' && (
-              <button disabled={!selectedSlot}
-                onClick={() => setStep(isAuthenticated ? 'confirm' : 'auth')}
+              <button disabled={!selectedSlot} onClick={() => setStep(isAuthenticated ? 'confirm' : 'auth')}
                 className="w-full py-4 rounded-2xl text-white text-sm font-bold transition-all disabled:opacity-30 flex items-center justify-center gap-2"
                 style={{ backgroundColor: primary }}>
                 {!selectedSlot ? 'Selecione um horário' : `Continuar · ${format(new Date(selectedSlot), 'HH:mm')} ${selectedDate}`}
@@ -409,16 +439,14 @@ export default function PremiumBookingPage() {
               </button>
             )}
             {step === 'auth' && (
-              <button disabled={authMut.isPending || !authForm.email || !authForm.password}
-                onClick={() => authMut.mutate()}
+              <button disabled={authMut.isPending || !authForm.email || !authForm.password} onClick={() => authMut.mutate()}
                 className="w-full py-4 rounded-2xl text-white text-sm font-bold transition-all disabled:opacity-30"
                 style={{ backgroundColor: primary }}>
                 {authMut.isPending ? 'Aguarde...' : authMode === 'login' ? 'Entrar e continuar' : 'Criar conta e continuar'}
               </button>
             )}
             {step === 'confirm' && (
-              <button disabled={bookMut.isPending}
-                onClick={() => bookMut.mutate()}
+              <button disabled={bookMut.isPending} onClick={() => bookMut.mutate()}
                 className="w-full py-4 rounded-2xl text-white text-sm font-bold transition-all disabled:opacity-30"
                 style={{ backgroundColor: primary }}>
                 {bookMut.isPending ? 'Agendando...' : 'Confirmar agendamento'}
@@ -430,161 +458,197 @@ export default function PremiumBookingPage() {
     </div>
   )
 
-  // ── PAGE ─────────────────────────────────────────────────────────────────────
+  // ── PAGE ──────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white font-sans">
       <Drawer />
 
-      {/* Floating nav (appears on scroll) */}
-      <div className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${!heroVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
-        <div className="bg-white/95 backdrop-blur border-b border-zinc-100 px-5 py-3 flex items-center justify-between max-w-lg mx-auto">
-          <div className="flex items-center gap-3">
-            {info.theme?.logo_url && <img src={info.theme.logo_url} alt="" className="w-7 h-7 rounded-lg object-cover" />}
-            <p className="font-bold text-zinc-900 text-sm">{tenantName}</p>
+      {/* ── Floating nav ─────────────────────────────────────────── */}
+      <nav className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${!heroVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
+        <div className="bg-white/95 backdrop-blur-md border-b border-zinc-100 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {info.theme?.logo_url && (
+                <img src={info.theme.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover" />
+              )}
+              <span className="font-bold text-zinc-900">{tenantName}</span>
+              {avgRating && (
+                <div className="hidden sm:flex items-center gap-1 ml-2">
+                  <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                  <span className="text-sm font-semibold text-zinc-600">{avgRating.toFixed(1)}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              {info.tenant?.phone && (
+                <a href={`tel:${info.tenant.phone}`} className="hidden md:flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 transition-colors">
+                  <Phone className="w-4 h-4" />{info.tenant.phone}
+                </a>
+              )}
+              <button onClick={() => openDrawer()}
+                className="px-5 py-2.5 rounded-xl text-white text-sm font-bold transition-all hover:opacity-90 active:scale-[0.98]"
+                style={{ backgroundColor: primary }}>
+                Agendar agora
+              </button>
+            </div>
           </div>
-          <button onClick={() => openDrawer()}
-            className="px-4 py-2 rounded-xl text-white text-xs font-bold"
-            style={{ backgroundColor: primary }}>
-            Agendar
-          </button>
         </div>
-      </div>
+      </nav>
 
-      {/* Hero */}
+      {/* ── Hero ─────────────────────────────────────────────────── */}
       <div ref={heroRef} className="relative min-h-screen flex flex-col" style={{ backgroundColor: '#0a0a0a' }}>
-        {info.theme?.cover_image_url && (
+        {info.theme?.cover_image_url ? (
           <div className="absolute inset-0">
-            <img src={info.theme.cover_image_url} alt="" className="w-full h-full object-cover opacity-30" />
-            <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(10,10,10,0.3) 0%, rgba(10,10,10,0.7) 60%, rgba(10,10,10,1) 100%)' }} />
+            <img src={info.theme.cover_image_url} alt="" className="w-full h-full object-cover" />
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(10,10,10,0.85) 0%, rgba(10,10,10,0.5) 50%, rgba(10,10,10,0.8) 100%)' }} />
           </div>
+        ) : (
+          <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, #0a0a0a 0%, ${primary}22 100%)` }} />
         )}
 
-        <div className="relative flex-1 flex flex-col justify-end px-6 pb-12 pt-20 max-w-lg mx-auto w-full">
-          {info.theme?.logo_url && (
-            <img src={info.theme.logo_url} alt="" className="w-14 h-14 rounded-2xl object-cover mb-6 border border-white/10" />
-          )}
+        <div className="relative flex-1 flex items-end pb-16 pt-24">
+          <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl">
+              {info.theme?.logo_url && (
+                <img src={info.theme.logo_url} alt="" className="w-16 h-16 rounded-2xl object-cover mb-8 border border-white/10 shadow-2xl" />
+              )}
+              <p className="text-xs font-bold tracking-[0.35em] uppercase mb-4" style={{ color: primary }}>
+                {info.tenant?.category || 'Beauty & Wellness'}
+              </p>
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white leading-[0.95] tracking-tight">
+                {tenantName}
+              </h1>
+              {info.tenant?.short_description && (
+                <p className="text-zinc-400 mt-5 text-base leading-relaxed max-w-md">
+                  {info.tenant.short_description}
+                </p>
+              )}
 
-          <div className="mb-2">
-            <p className="text-xs font-medium tracking-[0.3em] uppercase mb-3" style={{ color: primary }}>
-              {info.tenant?.category || 'Beauty & Wellness'}
-            </p>
-            <h1 className="text-5xl font-black text-white leading-tight tracking-tight">{tenantName}</h1>
-          </div>
-
-          {info.tenant?.short_description && (
-            <p className="text-zinc-400 text-sm mt-3 leading-relaxed max-w-xs">{info.tenant.short_description}</p>
-          )}
-
-          {avgRating && (
-            <div className="flex items-center gap-2 mt-4">
-              <div className="flex gap-0.5">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className={`w-4 h-4 ${i < Math.round(avgRating) ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-700'}`} />
-                ))}
-              </div>
-              <span className="text-sm font-bold text-white">{avgRating.toFixed(1)}</span>
-              <span className="text-xs text-zinc-500">({reviews.length} avaliações)</span>
-            </div>
-          )}
-
-          <div className="flex items-center gap-4 mt-4 flex-wrap">
-            {info.tenant?.phone && (
-              <a href={`tel:${info.tenant.phone}`} className="flex items-center gap-1.5 text-zinc-400 hover:text-white text-xs transition-colors">
-                <Phone className="w-3.5 h-3.5" />{info.tenant.phone}
-              </a>
-            )}
-            {info.tenant?.address && (
-              <span className="flex items-center gap-1.5 text-zinc-400 text-xs">
-                <MapPin className="w-3.5 h-3.5" />{info.tenant.address}
-              </span>
-            )}
-            {info.tenant?.instagram && (
-              <a href={`https://instagram.com/${info.tenant.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-zinc-400 hover:text-white text-xs transition-colors">
-                <AtSign className="w-3.5 h-3.5" />{info.tenant.instagram}
-              </a>
-            )}
-          </div>
-
-          <button onClick={() => openDrawer()}
-            className="mt-8 py-4 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
-            style={{ backgroundColor: primary }}>
-            Agendar agora <ChevronRight className="w-4 h-4" />
-          </button>
-
-          {/* Business hours preview */}
-          {info.business_hours?.filter((b: { is_closed: boolean }) => !b.is_closed).length > 0 && (
-            <div className="mt-6 flex items-center gap-3 overflow-x-auto pb-1">
-              {info.business_hours.filter((b: { is_closed: boolean }) => !b.is_closed).slice(0, 5).map((bh: { weekday: number; open_time?: string; close_time?: string; is_closed: boolean }) => (
-                <div key={bh.weekday} className="flex-shrink-0 text-center">
-                  <p className="text-[10px] font-bold uppercase text-zinc-600">{WEEKDAYS[bh.weekday]}</p>
-                  <p className="text-xs text-zinc-300 font-medium">{bh.open_time?.slice(0, 5)}–{bh.close_time?.slice(0, 5)}</p>
+              {avgRating && (
+                <div className="flex items-center gap-2 mt-6">
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className={`w-4 h-4 ${i < Math.round(avgRating) ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-700'}`} />
+                    ))}
+                  </div>
+                  <span className="text-sm font-bold text-white">{avgRating.toFixed(1)}</span>
+                  <span className="text-xs text-zinc-500">({reviews.length} avaliações)</span>
                 </div>
-              ))}
+              )}
+
+              <div className="flex flex-wrap gap-4 mt-5">
+                {info.tenant?.phone && (
+                  <a href={`tel:${info.tenant.phone}`} className="flex items-center gap-1.5 text-zinc-400 hover:text-white text-sm transition-colors">
+                    <Phone className="w-4 h-4" />{info.tenant.phone}
+                  </a>
+                )}
+                {info.tenant?.address && (
+                  <span className="flex items-center gap-1.5 text-zinc-400 text-sm">
+                    <MapPin className="w-4 h-4" />{info.tenant.address}
+                  </span>
+                )}
+                {info.tenant?.instagram && (
+                  <a href={`https://instagram.com/${info.tenant.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-zinc-400 hover:text-white text-sm transition-colors">
+                    <AtSign className="w-4 h-4" />{info.tenant.instagram}
+                  </a>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 mt-8">
+                <button onClick={() => openDrawer()}
+                  className="px-8 py-4 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
+                  style={{ backgroundColor: primary }}>
+                  Agendar agora <ChevronRight className="w-4 h-4" />
+                </button>
+                {services.length > 0 && (
+                  <button
+                    onClick={() => document.getElementById('services-section')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="px-8 py-4 rounded-2xl text-sm font-medium text-white/70 border border-white/10 hover:border-white/30 hover:text-white transition-all flex items-center justify-center gap-2">
+                    Ver serviços <ChevronDown className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Scroll hint */}
         <div className="relative flex justify-center pb-6 animate-bounce">
           <ChevronDown className="w-5 h-5 text-zinc-600" />
         </div>
       </div>
 
-      {/* Services Section */}
-      <div className="px-5 py-14 max-w-lg mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400 mb-1">O que oferecemos</p>
-            <h2 className="text-2xl font-black text-zinc-900">Serviços</h2>
-          </div>
-          {services.length > 4 && (
-            <span className="text-xs text-zinc-400">{services.length} serviços</span>
-          )}
-        </div>
-
-        <div className="space-y-3">
-          {services.map((svc, i) => (
-            <div key={svc.id} className="group flex items-center gap-4 py-4 border-b border-zinc-100 last:border-0">
-              <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 font-black text-sm"
-                style={{ backgroundColor: primary + '15', color: primary }}>
-                {String(i + 1).padStart(2, '0')}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-zinc-900 text-sm">{svc.name}</p>
-                {svc.description && <p className="text-xs text-zinc-400 truncate mt-0.5">{svc.description}</p>}
-                <p className="text-xs text-zinc-400 mt-1 flex items-center gap-1"><Clock className="w-3 h-3" />{svc.duration_minutes}min</p>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <p className="text-sm font-black text-zinc-900">R$ {Number(svc.price).toFixed(2)}</p>
-                <button onClick={() => openDrawer(svc.id)}
-                  className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:scale-105"
-                  style={{ backgroundColor: primary }}>
-                  <Plus className="w-4 h-4 text-white" />
+      {/* ── About / Quem somos ───────────────────────────────────── */}
+      {hasAbout && (
+        <div className="bg-zinc-50 py-20 lg:py-28">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-3xl">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] mb-4" style={{ color: primary }}>
+                Sobre nós
+              </p>
+              {info.settings?.homepage_title && (
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-zinc-900 leading-tight mb-6">
+                  {info.settings.homepage_title}
+                </h2>
+              )}
+              {info.settings?.homepage_subtitle && (
+                <p className="text-lg text-zinc-600 leading-relaxed mb-4">
+                  {info.settings.homepage_subtitle}
+                </p>
+              )}
+              {info.tenant?.short_description && !info.settings?.homepage_title && (
+                <p className="text-lg text-zinc-600 leading-relaxed">
+                  {info.tenant.short_description}
+                </p>
+              )}
+              <div className="flex items-center gap-3 mt-8">
+                <div className="h-px flex-1 max-w-xs" style={{ backgroundColor: primary + '40' }} />
+                <button onClick={() => openDrawer()}
+                  className="flex items-center gap-2 text-sm font-bold transition-colors hover:opacity-80"
+                  style={{ color: primary }}>
+                  Agendar agora <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
-          ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Professionals */}
-      {profsArr.length > 0 && (
-        <div className="px-5 py-10 bg-zinc-50">
-          <div className="max-w-lg mx-auto">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400 mb-1">Conheça</p>
-            <h2 className="text-2xl font-black text-zinc-900 mb-7">Nossa equipe</h2>
-            <div className="grid grid-cols-2 gap-3">
-              {profsArr.map(prof => (
-                <div key={prof.id} className="bg-white rounded-2xl p-4 border border-zinc-100">
-                  <div className="w-12 h-12 rounded-2xl mb-3 flex items-center justify-center font-black text-lg overflow-hidden"
-                    style={{ backgroundColor: primary + '20', color: primary }}>
-                    {prof.photo_url
-                      ? <img src={prof.photo_url} alt={prof.name} className="w-full h-full object-cover" />
-                      : prof.name.charAt(0)}
+      {/* ── Services ─────────────────────────────────────────────── */}
+      {services.length > 0 && (
+        <div id="services-section" className="py-20 lg:py-28 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="mb-12">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-3">O que oferecemos</p>
+              <h2 className="text-3xl sm:text-4xl font-black text-zinc-900">Nossos serviços</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {services.map((svc, i) => (
+                <div key={svc.id} className="group flex flex-col bg-white border border-zinc-100 rounded-3xl p-6 hover:shadow-lg hover:border-zinc-200 transition-all duration-300">
+                  <div className="flex items-start justify-between mb-5">
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg shrink-0"
+                      style={{ backgroundColor: primary + '15', color: primary }}>
+                      {String(i + 1).padStart(2, '0')}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-zinc-400 bg-zinc-50 rounded-full px-3 py-1">
+                      <Clock className="w-3.5 h-3.5" />
+                      {svc.duration_minutes}min
+                    </div>
                   </div>
-                  <p className="font-bold text-zinc-900 text-sm">{prof.name}</p>
-                  {prof.bio && <p className="text-xs text-zinc-400 mt-1 line-clamp-2">{prof.bio}</p>}
+                  <h3 className="font-bold text-zinc-900 text-lg leading-snug mb-2">{svc.name}</h3>
+                  {svc.description && (
+                    <p className="text-sm text-zinc-500 leading-relaxed flex-1 line-clamp-3">{svc.description}</p>
+                  )}
+                  <div className="flex items-center justify-between mt-6 pt-5 border-t border-zinc-50">
+                    <p className="text-xl font-black text-zinc-900">
+                      R$ {Number(svc.price).toFixed(2)}
+                    </p>
+                    <button onClick={() => openDrawer(svc.id)}
+                      className="px-5 py-2.5 rounded-xl text-white text-sm font-bold transition-all hover:opacity-90 active:scale-[0.97] group-hover:shadow-md"
+                      style={{ backgroundColor: primary }}>
+                      Agendar
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -592,55 +656,158 @@ export default function PremiumBookingPage() {
         </div>
       )}
 
-      {/* Portfolio */}
-      {photos.length > 0 && (
-        <div className="px-5 py-14 max-w-lg mx-auto">
-          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400 mb-1">Nosso trabalho</p>
-          <h2 className="text-2xl font-black text-zinc-900 mb-7">Portfólio</h2>
-          <div className="columns-2 gap-2 space-y-2">
-            {photos.map((photo, i) => (
-              photo.file_url ? (
-                <button key={photo.id} onClick={() => setLightbox(photo.file_url!)}
-                  className={`break-inside-avoid block w-full rounded-2xl overflow-hidden bg-zinc-100 group relative ${i % 3 === 0 ? 'aspect-square' : 'aspect-[4/5]'}`}>
-                  <img src={photo.file_url} alt={photo.caption || ''} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  {photo.caption && (
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <p className="text-[10px] text-white font-medium">{photo.caption}</p>
+      {/* ── Team / Professionals ─────────────────────────────────── */}
+      {profsArr.length > 0 && (
+        <div className="py-20 lg:py-28 bg-zinc-950">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="mb-12">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] mb-3" style={{ color: primary }}>Conheça</p>
+              <h2 className="text-3xl sm:text-4xl font-black text-white">Nossa equipe</h2>
+            </div>
+
+            {/* Mobile: carousel */}
+            <div className="lg:hidden">
+              <div className="overflow-hidden rounded-3xl">
+                <div className="flex transition-transform duration-700 ease-in-out"
+                  style={{ transform: `translateX(-${profIdx * 100}%)` }}>
+                  {profsArr.map(prof => (
+                    <div key={prof.id} className="w-full flex-shrink-0">
+                      <div className="bg-zinc-900 rounded-3xl overflow-hidden">
+                        {prof.photo_url ? (
+                          <img src={prof.photo_url} alt={prof.name} className="w-full h-72 object-cover object-top" />
+                        ) : (
+                          <div className="w-full h-72 flex items-center justify-center text-5xl font-black"
+                            style={{ backgroundColor: primary + '20', color: primary }}>
+                            {prof.name.charAt(0)}
+                          </div>
+                        )}
+                        <div className="p-6">
+                          <h3 className="font-bold text-white text-xl">{prof.name}</h3>
+                          {prof.bio && <p className="text-sm text-zinc-400 mt-2 leading-relaxed">{prof.bio}</p>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Carousel controls */}
+              <div className="flex items-center justify-between mt-5">
+                <button onClick={() => setProfIdx(i => (i - 1 + profsArr.length) % profsArr.length)}
+                  className="w-10 h-10 rounded-full border border-zinc-700 flex items-center justify-center text-zinc-400 hover:border-zinc-500 hover:text-white transition-colors">
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <div className="flex gap-2">
+                  {profsArr.map((_, i) => (
+                    <button key={i} onClick={() => setProfIdx(i)}
+                      className="w-2 h-2 rounded-full transition-all"
+                      style={{ backgroundColor: i === profIdx ? primary : '#52525b' }} />
+                  ))}
+                </div>
+                <button onClick={() => setProfIdx(i => (i + 1) % profsArr.length)}
+                  className="w-10 h-10 rounded-full border border-zinc-700 flex items-center justify-center text-zinc-400 hover:border-zinc-500 hover:text-white transition-colors">
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Desktop: grid */}
+            <div className="hidden lg:grid grid-cols-3 gap-6">
+              {profsArr.map((prof, i) => (
+                <div key={prof.id}
+                  className={`bg-zinc-900 rounded-3xl overflow-hidden transition-all duration-500 cursor-pointer ${i === profIdx % profsArr.length ? 'ring-2 scale-[1.02]' : 'opacity-80 hover:opacity-100'}`}
+                  style={i === profIdx % profsArr.length ? { ringColor: primary } : {}}
+                  onMouseEnter={() => setProfIdx(i)}>
+                  {prof.photo_url ? (
+                    <img src={prof.photo_url} alt={prof.name} className="w-full h-64 object-cover object-top" />
+                  ) : (
+                    <div className="w-full h-64 flex items-center justify-center text-5xl font-black"
+                      style={{ backgroundColor: primary + '20', color: primary }}>
+                      {prof.name.charAt(0)}
                     </div>
                   )}
-                </button>
-              ) : null
-            ))}
+                  <div className="p-6">
+                    <h3 className="font-bold text-white text-lg">{prof.name}</h3>
+                    {prof.bio && <p className="text-sm text-zinc-400 mt-2 leading-relaxed line-clamp-3">{prof.bio}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Reviews */}
+      {/* ── Portfolio ────────────────────────────────────────────── */}
+      {photos.length > 0 && (
+        <div className="py-20 lg:py-28 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="mb-12">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-3">Nosso trabalho</p>
+              <h2 className="text-3xl sm:text-4xl font-black text-zinc-900">Portfólio</h2>
+            </div>
+            <div className="columns-2 md:columns-3 lg:columns-4 gap-3 space-y-3">
+              {photos.map((photo, i) => (
+                photo.file_url ? (
+                  <button key={photo.id} onClick={() => setLightbox(photo.file_url!)}
+                    className={`break-inside-avoid block w-full rounded-2xl overflow-hidden bg-zinc-100 group relative ${i % 3 === 0 ? 'aspect-square' : 'aspect-[3/4]'}`}>
+                    <img src={photo.file_url} alt={photo.caption || ''}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    {photo.caption && (
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <p className="text-xs text-white font-medium">{photo.caption}</p>
+                      </div>
+                    )}
+                  </button>
+                ) : null
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Reviews ──────────────────────────────────────────────── */}
       {reviews.length > 0 && (
-        <div className="py-14 bg-zinc-950">
-          <div className="px-5 max-w-lg mx-auto">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] mb-1" style={{ color: primary }}>O que dizem</p>
-            <div className="flex items-end justify-between mb-7">
-              <h2 className="text-2xl font-black text-white">Avaliações</h2>
+        <div className="py-20 lg:py-28 bg-zinc-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-end justify-between mb-12">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.3em] mb-3" style={{ color: primary }}>Depoimentos</p>
+                <h2 className="text-3xl sm:text-4xl font-black text-zinc-900">O que dizem</h2>
+              </div>
               {avgRating && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-3xl font-black text-white">{avgRating.toFixed(1)}</span>
-                  <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                <div className="text-right hidden sm:block">
+                  <p className="text-5xl font-black text-zinc-900">{avgRating.toFixed(1)}</p>
+                  <div className="flex gap-0.5 justify-end mt-1">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className={`w-4 h-4 ${i < Math.round(avgRating) ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-200'}`} />
+                    ))}
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-1">{reviews.length} avaliações</p>
                 </div>
               )}
             </div>
-            <div className="space-y-4">
-              {reviews.slice(0, 5).map(review => (
-                <div key={review.id} className="bg-zinc-900 rounded-2xl p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="font-semibold text-white text-sm">{review.reviewer_name || 'Cliente'}</p>
-                    <div className="flex gap-0.5">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className={`w-3.5 h-3.5 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-700'}`} />
-                      ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {reviews.slice(0, 6).map(review => (
+                <div key={review.id} className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100">
+                  <div className="flex gap-0.5 mb-4">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-200'}`} />
+                    ))}
+                  </div>
+                  {review.comment && (
+                    <p className="text-zinc-600 text-sm leading-relaxed mb-4">"{review.comment}"</p>
+                  )}
+                  <div className="flex items-center gap-3 pt-4 border-t border-zinc-50">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                      style={{ backgroundColor: primary }}>
+                      {(review.reviewer_name || 'C').charAt(0)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-zinc-800">{review.reviewer_name || 'Cliente'}</p>
+                      {review.created_at && (
+                        <p className="text-xs text-zinc-400">{format(new Date(review.created_at), 'MMM yyyy', { locale: ptBR })}</p>
+                      )}
                     </div>
                   </div>
-                  {review.comment && <p className="text-sm text-zinc-400 leading-relaxed">"{review.comment}"</p>}
                 </div>
               ))}
             </div>
@@ -648,28 +815,103 @@ export default function PremiumBookingPage() {
         </div>
       )}
 
-      {/* Business Hours */}
+      {/* ── Business Hours ───────────────────────────────────────── */}
       {info.business_hours?.length > 0 && (
-        <div className="px-5 py-14 max-w-lg mx-auto">
-          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400 mb-1">Funcionamento</p>
-          <h2 className="text-2xl font-black text-zinc-900 mb-6">Horários</h2>
-          <div className="divide-y divide-zinc-100">
-            {info.business_hours.map((bh: { weekday: number; open_time?: string; close_time?: string; is_closed: boolean }) => (
-              <div key={bh.weekday} className="flex items-center justify-between py-3.5">
-                <p className="text-sm font-medium text-zinc-900">{WEEKDAYS[bh.weekday]}</p>
-                {bh.is_closed
-                  ? <p className="text-xs text-zinc-400">Fechado</p>
-                  : <p className="text-sm font-semibold text-zinc-900">{bh.open_time?.slice(0, 5)} – {bh.close_time?.slice(0, 5)}</p>
-                }
-              </div>
-            ))}
+        <div className="py-16 lg:py-20 bg-white border-t border-zinc-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-lg">
+              <button
+                onClick={() => setHoursExpanded(v => !v)}
+                className="w-full flex items-center justify-between group">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-2">Funcionamento</p>
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-2xl font-black text-zinc-900">Horários</h2>
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${isOpenNow ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
+                      {isOpenNow ? '● Aberto agora' : '● Fechado agora'}
+                    </span>
+                  </div>
+                  {todayBH && !todayBH.is_closed && (
+                    <p className="text-sm text-zinc-500 mt-1">
+                      {isOpenNow
+                        ? `Fecha às ${todayBH.close_time?.slice(0, 5)}`
+                        : `Hoje: ${todayBH.open_time?.slice(0, 5)} – ${todayBH.close_time?.slice(0, 5)}`}
+                    </p>
+                  )}
+                  {todayBH?.is_closed && (
+                    <p className="text-sm text-zinc-500 mt-1">Fechado hoje</p>
+                  )}
+                </div>
+                <div className="w-10 h-10 rounded-full border border-zinc-200 flex items-center justify-center text-zinc-400 group-hover:border-zinc-400 transition-colors shrink-0">
+                  {hoursExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </div>
+              </button>
+
+              {hoursExpanded && (
+                <div className="mt-6 divide-y divide-zinc-50 border border-zinc-100 rounded-2xl overflow-hidden">
+                  {(info.business_hours as BH[]).map(bh => {
+                    const isToday = bh.weekday === currentDay
+                    return (
+                      <div key={bh.weekday}
+                        className={`flex items-center justify-between px-5 py-3.5 transition-colors ${isToday ? 'bg-zinc-50' : 'bg-white'}`}>
+                        <div className="flex items-center gap-3">
+                          <p className={`text-sm font-medium ${isToday ? 'text-zinc-900 font-bold' : 'text-zinc-600'}`}>
+                            {WEEKDAYS[bh.weekday]}
+                          </p>
+                          {isToday && (
+                            <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded" style={{ backgroundColor: primary + '20', color: primary }}>
+                              Hoje
+                            </span>
+                          )}
+                        </div>
+                        {bh.is_closed ? (
+                          <p className="text-xs text-zinc-400">Fechado</p>
+                        ) : (
+                          <p className={`text-sm font-semibold ${isToday ? 'text-zinc-900' : 'text-zinc-700'}`}>
+                            {bh.open_time?.slice(0, 5)} – {bh.close_time?.slice(0, 5)}
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Sticky book button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-zinc-100 p-4 z-30">
-        <div className="max-w-lg mx-auto flex items-center gap-3">
+      {/* ── Footer contact ───────────────────────────────────────── */}
+      <footer className="py-10 bg-zinc-950 border-t border-zinc-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {info.theme?.logo_url && <img src={info.theme.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover opacity-70" />}
+            <span className="font-bold text-zinc-400">{tenantName}</span>
+          </div>
+          <div className="flex items-center gap-5">
+            {info.tenant?.phone && (
+              <a href={`tel:${info.tenant.phone}`} className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 text-xs transition-colors">
+                <Phone className="w-3.5 h-3.5" />{info.tenant.phone}
+              </a>
+            )}
+            {info.tenant?.instagram && (
+              <a href={`https://instagram.com/${info.tenant.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 text-xs transition-colors">
+                <AtSign className="w-3.5 h-3.5" />{info.tenant.instagram}
+              </a>
+            )}
+            {info.tenant?.address && (
+              <span className="hidden md:flex items-center gap-1.5 text-zinc-600 text-xs">
+                <MapPin className="w-3.5 h-3.5" />{info.tenant.address}
+              </span>
+            )}
+          </div>
+        </div>
+      </footer>
+
+      {/* ── Sticky CTA bar ───────────────────────────────────────── */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-zinc-100 shadow-xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-4">
           {selectedServiceIds.length > 0 && (
             <div className="flex-1 min-w-0">
               <p className="text-xs text-zinc-500">{selectedServiceIds.length} serviço{selectedServiceIds.length > 1 ? 's' : ''} selecionado{selectedServiceIds.length > 1 ? 's' : ''}</p>
@@ -677,23 +919,22 @@ export default function PremiumBookingPage() {
             </div>
           )}
           <button onClick={() => openDrawer()} style={{ backgroundColor: primary }}
-            className={`py-4 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98] ${selectedServiceIds.length > 0 ? 'flex-shrink-0 px-6' : 'w-full'}`}>
-            {selectedServiceIds.length > 0 ? 'Continuar' : 'Agendar agora'}
+            className={`py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98] ${selectedServiceIds.length > 0 ? 'flex-shrink-0 px-6' : 'flex-1 sm:max-w-sm sm:mx-auto'}`}>
+            {selectedServiceIds.length > 0 ? 'Continuar agendamento' : 'Agendar agora'}
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Bottom padding for sticky button */}
-      <div className="h-24" />
+      <div className="h-20" />
 
-      {/* Lightbox */}
+      {/* ── Lightbox ─────────────────────────────────────────────── */}
       {lightbox && (
         <div className="fixed inset-0 z-[60] bg-black/95 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
-          <button className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+          <button className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
             <X className="w-5 h-5 text-white" />
           </button>
-          <img src={lightbox} className="max-w-full max-h-full rounded-2xl" onClick={e => e.stopPropagation()} />
+          <img src={lightbox} className="max-w-full max-h-full rounded-2xl object-contain" onClick={e => e.stopPropagation()} />
         </div>
       )}
     </div>
