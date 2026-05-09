@@ -59,6 +59,8 @@ import ThemeSettingsPage from '@/features/settings/ThemeSettingsPage'
 import WebhooksPage from '@/features/settings/WebhooksPage'
 import PaymentSettingsPage from '@/features/settings/PaymentSettingsPage'
 import NotificationSettingsPage from '@/features/settings/NotificationSettingsPage'
+import WhatsAppSettingsPage from '@/features/settings/WhatsAppSettingsPage'
+import LifecyclePage from '@/features/lifecycle/LifecyclePage'
 
 // Public
 import PublicBookingPage from '@/features/public-booking/PublicBookingPage'
@@ -141,8 +143,10 @@ const router = createBrowserRouter([
       { path: 'theme', element: <ThemeSettingsPage /> },
       { path: 'notifications', element: <NotificationSettingsPage /> },
       { path: 'webhooks', element: <WebhooksPage /> },
+      { path: 'whatsapp', element: <WhatsAppSettingsPage /> },
     ],
   },
+  { path: '/app/lifecycle', element: A(<LifecyclePage />) },
 
   // Public booking (mobile-first)
   { path: '/:slug', element: <PublicBookingPage /> },
