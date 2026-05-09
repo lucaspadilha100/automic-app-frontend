@@ -12,7 +12,7 @@ import toast from "react-hot-toast"
 const TEMPLATES = [
   {
     id: "classic",
-    label: "Classic",
+    label: "Clássico",
     description: "Layout claro, minimalista e familiar. Ideal para clínicas e profissionais que preferem um visual limpo.",
     preview: "bg-white border-slate-200",
     accent: "#6366f1",
