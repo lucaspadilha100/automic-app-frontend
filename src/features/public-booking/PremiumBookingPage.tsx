@@ -11,7 +11,7 @@ import toast from 'react-hot-toast'
 import { extractApiError } from '@/api/client'
 import {
   X, ChevronRight, ChevronLeft, Check, Clock, MapPin, Phone,
-  AtSign, Star, Calendar, ChevronDown, ChevronUp,
+  AtSign, Star, Calendar, ChevronDown,
 } from 'lucide-react'
 
 type Step = 'services' | 'datetime' | 'auth' | 'confirm' | 'success'
@@ -569,6 +569,42 @@ export default function PremiumBookingPage() {
                   </button>
                 )}
               </div>
+
+              {/* Status de funcionamento — visível sem scroll */}
+              {info.business_hours?.length > 0 && (
+                <div className="mt-5">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border ${isOpenNow ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' : 'bg-red-500/15 text-red-400 border-red-500/25'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full bg-current ${isOpenNow ? 'animate-pulse' : ''}`} />
+                      {isOpenNow ? 'Aberto agora' : 'Fechado agora'}
+                    </span>
+                    {todayBH && !todayBH.is_closed && (
+                      <span className="text-xs text-zinc-400">
+                        {isOpenNow
+                          ? `Fecha às ${todayBH.close_time?.slice(0, 5)}`
+                          : `Hoje: ${todayBH.open_time?.slice(0, 5)} – ${todayBH.close_time?.slice(0, 5)}`}
+                      </span>
+                    )}
+                    <button onClick={() => setHoursExpanded(v => !v)}
+                      className="text-xs text-zinc-500 hover:text-zinc-300 underline underline-offset-2 transition-colors">
+                      {hoursExpanded ? 'Fechar' : 'Ver todos os horários'}
+                    </button>
+                  </div>
+                  {hoursExpanded && (
+                    <div className="mt-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 grid grid-cols-4 sm:grid-cols-7 gap-2">
+                      {(info.business_hours as BH[]).map((bh: BH) => (
+                        <div key={bh.weekday} className={`text-center p-2 rounded-xl ${bh.weekday === currentDay ? 'bg-white/10' : ''}`}>
+                          <p className="text-[10px] font-bold text-zinc-500 uppercase mb-1">{WEEKDAYS[bh.weekday]}</p>
+                          {bh.is_closed
+                            ? <p className="text-[10px] text-zinc-600">Fechado</p>
+                            : <p className="text-[10px] text-zinc-300 font-medium leading-tight">{bh.open_time?.slice(0, 5)}<br />{bh.close_time?.slice(0, 5)}</p>
+                          }
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -815,71 +851,6 @@ export default function PremiumBookingPage() {
         </div>
       )}
 
-      {/* ── Business Hours ───────────────────────────────────────── */}
-      {info.business_hours?.length > 0 && (
-        <div className="py-16 lg:py-20 bg-white border-t border-zinc-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-lg">
-              <button
-                onClick={() => setHoursExpanded(v => !v)}
-                className="w-full flex items-center justify-between group">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-2">Funcionamento</p>
-                  <div className="flex items-center gap-3">
-                    <h2 className="text-2xl font-black text-zinc-900">Horários</h2>
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${isOpenNow ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
-                      {isOpenNow ? '● Aberto agora' : '● Fechado agora'}
-                    </span>
-                  </div>
-                  {todayBH && !todayBH.is_closed && (
-                    <p className="text-sm text-zinc-500 mt-1">
-                      {isOpenNow
-                        ? `Fecha às ${todayBH.close_time?.slice(0, 5)}`
-                        : `Hoje: ${todayBH.open_time?.slice(0, 5)} – ${todayBH.close_time?.slice(0, 5)}`}
-                    </p>
-                  )}
-                  {todayBH?.is_closed && (
-                    <p className="text-sm text-zinc-500 mt-1">Fechado hoje</p>
-                  )}
-                </div>
-                <div className="w-10 h-10 rounded-full border border-zinc-200 flex items-center justify-center text-zinc-400 group-hover:border-zinc-400 transition-colors shrink-0">
-                  {hoursExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </div>
-              </button>
-
-              {hoursExpanded && (
-                <div className="mt-6 divide-y divide-zinc-50 border border-zinc-100 rounded-2xl overflow-hidden">
-                  {(info.business_hours as BH[]).map(bh => {
-                    const isToday = bh.weekday === currentDay
-                    return (
-                      <div key={bh.weekday}
-                        className={`flex items-center justify-between px-5 py-3.5 transition-colors ${isToday ? 'bg-zinc-50' : 'bg-white'}`}>
-                        <div className="flex items-center gap-3">
-                          <p className={`text-sm font-medium ${isToday ? 'text-zinc-900 font-bold' : 'text-zinc-600'}`}>
-                            {WEEKDAYS[bh.weekday]}
-                          </p>
-                          {isToday && (
-                            <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded" style={{ backgroundColor: primary + '20', color: primary }}>
-                              Hoje
-                            </span>
-                          )}
-                        </div>
-                        {bh.is_closed ? (
-                          <p className="text-xs text-zinc-400">Fechado</p>
-                        ) : (
-                          <p className={`text-sm font-semibold ${isToday ? 'text-zinc-900' : 'text-zinc-700'}`}>
-                            {bh.open_time?.slice(0, 5)} – {bh.close_time?.slice(0, 5)}
-                          </p>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Footer contact ───────────────────────────────────────── */}
       <footer className="py-10 bg-zinc-950 border-t border-zinc-900">
