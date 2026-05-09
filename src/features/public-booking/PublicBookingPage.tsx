@@ -447,14 +447,14 @@ export default function PublicBookingPage() {
               <div className="flex gap-2 flex-wrap">
                 {Array.from({ length: 8 }).map((_, i) => <div key={i} className="w-20 h-10 skeleton" />)}
               </div>
-            ) : !(slots as { available: boolean }[])?.filter(s => s.available).length ? (
+            ) : !(slots as { start_datetime: string }[])?.length ? (
               <div className="p-6 text-center bg-white rounded-xl border border-slate-200">
                 <Calendar className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                 <p className="text-sm text-slate-500">Nenhum horário disponível nesta data</p>
               </div>
             ) : (
               <div className="grid grid-cols-3 gap-2">
-                {(slots as { start_datetime: string; available: boolean }[])?.filter(s => s.available).map(slot => {
+                {(slots as { start_datetime: string }[])?.map(slot => {
                   const time = format(new Date(slot.start_datetime), 'HH:mm')
                   const sel = selectedSlot === slot.start_datetime
                   return (

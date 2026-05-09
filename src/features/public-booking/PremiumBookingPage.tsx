@@ -289,14 +289,14 @@ export default function PremiumBookingPage() {
                     <div className="grid grid-cols-4 gap-2">
                       {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-11 bg-zinc-100 rounded-xl animate-pulse" />)}
                     </div>
-                  ) : !(slots as { available: boolean }[])?.filter(s => s.available).length ? (
+                  ) : !(slots as { start_datetime: string }[])?.length ? (
                     <div className="py-8 text-center">
                       <Calendar className="w-8 h-8 text-zinc-300 mx-auto mb-2" />
                       <p className="text-sm text-zinc-400">Nenhum horário disponível</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-4 gap-2">
-                      {(slots as { start_datetime: string; available: boolean }[])?.filter(s => s.available).map(slot => {
+                      {(slots as { start_datetime: string }[])?.map(slot => {
                         const time = format(new Date(slot.start_datetime), 'HH:mm')
                         const sel = selectedSlot === slot.start_datetime
                         return (
