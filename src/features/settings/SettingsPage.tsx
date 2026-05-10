@@ -1,12 +1,13 @@
 
 import { NavLink, Outlet } from 'react-router-dom'
-import { Settings, CreditCard, Palette, Bell, MessageCircle, Users, FileText, Building2 } from 'lucide-react'
+import { Settings, CreditCard, Palette, Bell, MessageCircle, Users, FileText, Building2, Layout } from 'lucide-react'
 const tabs = [
   { to: '/app/settings/company', label: 'Minha Empresa', icon: Building2 },
   { to: '/app/settings', label: 'Geral', icon: Settings, end: true },
   { to: '/app/settings/booking', label: 'Agendamento', icon: Settings },
   { to: '/app/settings/payment', label: 'Pagamento', icon: CreditCard },
   { to: '/app/settings/theme', label: 'Tema', icon: Palette },
+  { to: '/app/settings/page-sections', label: 'Página', icon: Layout },
   { to: '/app/settings/notifications', label: 'Notificações', icon: Bell },
   { to: '/app/settings/webhooks', label: 'Webhooks', icon: Settings },
   { to: '/app/settings/whatsapp', label: 'WhatsApp', icon: MessageCircle },

@@ -201,6 +201,29 @@ export interface MediaFile {
   created_at: string
 }
 
+// Page section customization
+export interface PageSectionConfig {
+  visible?: boolean
+  label?: string
+  title?: string
+  subtitle?: string
+  background_color?: string
+  background_image_url?: string
+  overlay_opacity?: number
+  cta_text?: string
+}
+
+export interface PageSections {
+  hero?: PageSectionConfig
+  about?: PageSectionConfig
+  services?: PageSectionConfig
+  team?: PageSectionConfig
+  products?: PageSectionConfig
+  portfolio?: PageSectionConfig
+  reviews?: PageSectionConfig
+  footer?: PageSectionConfig
+}
+
 // Public booking page
 export interface PublicTenantInfo {
   tenant: {
@@ -247,6 +270,7 @@ export interface PublicTenantInfo {
     close_time?: string
     is_closed: boolean
   }>
+  page_sections?: PageSections
 }
 
 export interface Professional {

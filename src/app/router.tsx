@@ -63,6 +63,7 @@ const PaymentSettingsPage = lazy(() => import('@/features/settings/PaymentSettin
 const NotificationSettingsPage = lazy(() => import('@/features/settings/NotificationSettingsPage'))
 const WhatsAppSettingsPage = lazy(() => import('@/features/settings/WhatsAppSettingsPage'))
 const CompanyProfilePage = lazy(() => import('@/features/settings/CompanyProfilePage'))
+const PageSectionsPage = lazy(() => import('@/features/settings/PageSectionsPage'))
 const LifecyclePage = lazy(() => import('@/features/lifecycle/LifecyclePage'))
 const ReportsPage = lazy(() => import('@/features/reports/ReportsPage'))
 const ReviewsPage = lazy(() => import('@/features/reviews/ReviewsPage'))
@@ -165,6 +166,7 @@ const router = createBrowserRouter([
       { path: 'users', element: S(<UsersPage />) },
       { path: 'terms', element: S(<TermsPage />) },
       { path: 'company', element: S(<CompanyProfilePage />) },
+      { path: 'page-sections', element: S(<PageSectionsPage />) },
     ],
   },
   { path: '/app/lifecycle', element: A(<LifecyclePage />) },

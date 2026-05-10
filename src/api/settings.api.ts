@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { TenantSettings, TenantTheme, TenantPaymentSettings, NotificationTemplate, Webhook } from '@/types'
+import type { TenantSettings, TenantTheme, TenantPaymentSettings, NotificationTemplate, Webhook, PageSections, PageSectionConfig } from '@/types'
 
 export const settingsApi = {
   get: async () => { const r = await apiClient.get('/settings'); return r.data },
@@ -16,4 +16,6 @@ export const settingsApi = {
   updateWebhook: async (id: string, data: { url: string; is_active?: boolean }) => { const r = await apiClient.put<Webhook>(`/settings/webhooks/${id}`, data); return r.data },
   deleteWebhook: async (id: string) => { const r = await apiClient.delete(`/settings/webhooks/${id}`); return r.data },
   getEffectiveFeatures: async (): Promise<Record<string, boolean>> => (await apiClient.get('/settings/effective-features')).data,
+  getPageSections: async (): Promise<PageSections> => (await apiClient.get('/settings/page-sections')).data,
+  updatePageSections: async (data: PageSections): Promise<PageSections> => (await apiClient.put('/settings/page-sections', data)).data,
 }

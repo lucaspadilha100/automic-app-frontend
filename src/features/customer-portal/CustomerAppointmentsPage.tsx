@@ -11,6 +11,7 @@ import { ptBR } from 'date-fns/locale'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { extractApiError, publicApiClient } from '@/api/client'
+import { publicApi } from '@/api/public.api'
 
 type Tab = 'upcoming' | 'past' | 'history'
 type Appt = Record<string, unknown>
@@ -260,10 +261,23 @@ export default function CustomerAppointmentsPage() {
     enabled: !!slug,
   })
 
+  const { data: publicInfo } = useQuery({
+    queryKey: ['public', slug],
+    queryFn: () => publicApi.getInfo(slug!),
+    enabled: !!slug,
+  })
+
   const professionals = professionalsData?.data ?? []
   const photos = photosData?.data ?? []
   const products = productsData?.data ?? []
   const portfolioPhotos = photos.filter(p => p.photo_type === 'before' || p.photo_type === 'after').slice(0, 6)
+
+  const ps = publicInfo?.page_sections ?? {}
+  const sec = (key: string) => (ps as Record<string, Record<string, unknown>>)[key] ?? {}
+  const secBg = (key: string, fallback: string) => (sec(key).background_color as string | undefined) ?? fallback
+  const secVisible = (key: string) => sec(key).visible !== false
+  const secTitle = (key: string, fallback: string) => (sec(key).title as string | undefined) || fallback
+  const secLabel = (key: string, fallback: string) => (sec(key).label as string | undefined) || fallback
 
   const { data: procedureHistory, isLoading: isLoadingHistory } = useQuery({
     queryKey: ['customer-procedure-history', slug],
@@ -397,12 +411,12 @@ export default function CustomerAppointmentsPage() {
       </div>
 
       {/* ── Produtos ── */}
-      {products.length > 0 && (
-        <div className="bg-slate-50 py-12 sm:py-16 mt-2">
+      {products.length > 0 && secVisible('products') && (
+        <div className="py-12 sm:py-16 mt-2" style={{ backgroundColor: secBg('products', '#f8fafc') }}>
           <div className="max-w-4xl mx-auto px-4 sm:px-6">
             <div className="mb-8">
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-2">Loja</p>
-              <h2 className="text-2xl sm:text-3xl font-black text-zinc-900">Produtos</h2>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-2">{secLabel('products', 'Loja')}</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-zinc-900">{secTitle('products', 'Produtos')}</h2>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {products.map(product => (
@@ -439,12 +453,12 @@ export default function CustomerAppointmentsPage() {
       )}
 
       {/* ── Nossa Equipe (full-width dark section) ── */}
-      {professionals.length > 0 && (
-        <div className="bg-zinc-950 py-12 sm:py-16">
+      {professionals.length > 0 && secVisible('team') && (
+        <div className="py-12 sm:py-16" style={{ backgroundColor: secBg('team', '#09090b') }}>
           <div className="max-w-4xl mx-auto px-4 sm:px-6">
             <div className="mb-8 sm:mb-10">
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-500 mb-2">Conheça</p>
-              <h2 className="text-2xl sm:text-3xl font-black text-white">Nossa Equipe</h2>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-500 mb-2">{secLabel('team', 'Conheça')}</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-white">{secTitle('team', 'Nossa Equipe')}</h2>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
               {professionals.map(prof => (
@@ -469,12 +483,12 @@ export default function CustomerAppointmentsPage() {
       )}
 
       {/* ── Antes & Depois ── */}
-      {portfolioPhotos.length > 0 && (
-        <div className="bg-white py-12 sm:py-16 pb-28">
+      {portfolioPhotos.length > 0 && secVisible('portfolio') && (
+        <div className="py-12 sm:py-16 pb-28" style={{ backgroundColor: secBg('portfolio', '#ffffff') }}>
           <div className="max-w-4xl mx-auto px-4 sm:px-6">
             <div className="mb-8">
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-2">Portfólio</p>
-              <h2 className="text-2xl sm:text-3xl font-black text-zinc-900">Antes &amp; Depois</h2>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-2">{secLabel('portfolio', 'Portfólio')}</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-zinc-900">{secTitle('portfolio', 'Antes & Depois')}</h2>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {portfolioPhotos.map(photo => (
