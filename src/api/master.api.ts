@@ -55,6 +55,8 @@ export const masterApi = {
   getInvoice: async (id: string) => (await apiClient.get(`${M}/invoices/${id}`)).data,
   markInvoicePaid: async (id: string, data: Record<string, unknown>) =>
     (await apiClient.post(`${M}/invoices/${id}/mark-paid`, data)).data,
+  chargeInvoice: async (id: string) =>
+    (await apiClient.post(`${M}/invoices/${id}/charge`)).data,
   cancelInvoice: async (id: string, reason: string) =>
     (await apiClient.post(`${M}/invoices/${id}/cancel`, { reason })).data,
 

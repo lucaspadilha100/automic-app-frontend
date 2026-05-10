@@ -4,7 +4,7 @@ import { usersApi } from '@/api/users.api'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { LoadingState } from '@/components/feedback/LoadingState'
 import { EmptyState } from '@/components/feedback/EmptyState'
-import { Users, Mail, Plus, X, Power } from 'lucide-react'
+import { Users, Mail, Plus, X, Power, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -48,6 +48,7 @@ export default function UsersPage() {
   const [showInviteForm, setShowInviteForm] = useState(false)
   const [inviteForm, setInviteForm] = useState(EMPTY_INVITE)
   const [confirmDeactivate, setConfirmDeactivate] = useState<User | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<User | null>(null)
 
   const { data: users, isLoading: loadingUsers } = useQuery<User[]>({
     queryKey: ['users'],
@@ -66,6 +67,16 @@ export default function UsersPage() {
       qc.invalidateQueries({ queryKey: ['users'] })
       setConfirmDeactivate(null)
       toast.success('Status atualizado')
+    },
+    onError: (e: unknown) => toast.error(extractApiError(e)),
+  })
+
+  const deleteMut = useMutation({
+    mutationFn: (user: User) => usersApi.delete(user.id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['users'] })
+      setConfirmDelete(null)
+      toast.success('Usuário removido')
     },
     onError: (e: unknown) => toast.error(extractApiError(e)),
   })
@@ -209,11 +220,20 @@ export default function UsersPage() {
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => setConfirmDeactivate(u)}
-                      className={`btn-icon btn ${u.is_active ? 'text-emerald-500 hover:text-red-500' : 'text-slate-400 hover:text-emerald-500'}`}
+                      className={`btn-icon btn ${u.is_active ? 'text-emerald-500 hover:text-amber-500' : 'text-slate-400 hover:text-emerald-500'}`}
                       title={u.is_active ? 'Desativar' : 'Ativar'}
                     >
                       <Power className="w-4 h-4" />
                     </button>
+                    {u.role !== 'tenant_owner' && (
+                      <button
+                        onClick={() => setConfirmDelete(u)}
+                        className="btn-icon btn text-slate-300 hover:text-red-500"
+                        title="Remover usuário"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -293,6 +313,32 @@ export default function UsersPage() {
                 onClick={() => toggleMut.mutate(confirmDeactivate)}
               >
                 {toggleMut.isPending ? 'Salvando...' : confirmDeactivate.is_active ? 'Desativar' : 'Ativar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDelete && (
+        <div className="modal-overlay" onClick={() => setConfirmDelete(null)}>
+          <div className="modal-box" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="text-base font-bold text-slate-900">Remover usuário</h3>
+              <button onClick={() => setConfirmDelete(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-sm text-slate-600 px-6 py-4">
+              Tem certeza que deseja remover permanentemente o usuário <strong>{confirmDelete.name}</strong>? Esta ação não pode ser desfeita.
+            </p>
+            <div className="modal-footer">
+              <button className="btn-ghost" onClick={() => setConfirmDelete(null)}>Cancelar</button>
+              <button
+                className="btn-danger"
+                disabled={deleteMut.isPending}
+                onClick={() => deleteMut.mutate(confirmDelete)}
+              >
+                {deleteMut.isPending ? 'Removendo...' : 'Remover'}
               </button>
             </div>
           </div>
