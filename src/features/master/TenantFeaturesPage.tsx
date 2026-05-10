@@ -44,7 +44,7 @@ export default function TenantFeaturesPage() {
       <div className="card p-6 bg-white border-slate-200">
         <div className="space-y-4">
           {ALL_FEATURES.map(({ key, label }) => {
-            const enabled = features?.[key] ?? false
+            const enabled = features?.[key]?.enabled ?? false
             return (
               <div key={key} className="flex items-center justify-between py-3 border-b border-slate-200 last:border-0">
                 <div>
