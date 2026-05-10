@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/api/client'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -6,11 +7,11 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { LoadingState } from '@/components/feedback/LoadingState'
 import { Calendar, Users, TrendingUp, CreditCard } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { format, subDays } from 'date-fns'
+import { format, subDays, subMonths } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
+  PieChart, Pie, Cell,
 } from 'recharts'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -29,14 +30,40 @@ const STATUS_LABELS: Record<string, string> = {
   no_show: 'No-show',
 }
 
+const PERIODS = [
+  { key: '7d',  label: '7 dias' },
+  { key: '14d', label: '14 dias' },
+  { key: '30d', label: '30 dias' },
+  { key: '3m',  label: '3 meses' },
+  { key: '6m',  label: '6 meses' },
+  { key: '1a',  label: '1 ano' },
+] as const
+
+type PeriodKey = typeof PERIODS[number]['key']
+
+function getPeriodDates(period: PeriodKey): { dateFrom: string; dateTo: string } {
+  const today = new Date()
+  const dateTo = format(today, 'yyyy-MM-dd')
+  const starts: Record<PeriodKey, Date> = {
+    '7d':  subDays(today, 6),
+    '14d': subDays(today, 13),
+    '30d': subDays(today, 29),
+    '3m':  subMonths(today, 3),
+    '6m':  subMonths(today, 6),
+    '1a':  subMonths(today, 12),
+  }
+  return { dateFrom: format(starts[period], 'yyyy-MM-dd'), dateTo }
+}
+
 export default function DashboardPage() {
+  const [period, setPeriod] = useState<PeriodKey>('30d')
+
   const { data: dash, isLoading } = useQuery({
     queryKey: ['dashboard'],
     queryFn: async () => (await apiClient.get('/dashboard')).data,
   })
 
-  const dateFrom = format(subDays(new Date(), 29), 'yyyy-MM-dd')
-  const dateTo = format(new Date(), 'yyyy-MM-dd')
+  const { dateFrom, dateTo } = getPeriodDates(period)
 
   const { data: byStatus } = useQuery({
     queryKey: ['reports', 'by-status', dateFrom, dateTo],
@@ -105,14 +132,46 @@ export default function DashboardPage() {
 
         {/* Status pie chart */}
         <div className="card p-6">
-          <h2 className="text-sm font-bold text-slate-900 mb-1">Agendamentos por status</h2>
-          <p className="text-xs text-slate-400 mb-4">Últimos 30 dias</p>
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Agendamentos por status</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {format(new Date(dateFrom + 'T12:00:00'), 'dd/MM/yy')} – {format(new Date(dateTo + 'T12:00:00'), 'dd/MM/yy')}
+              </p>
+            </div>
+            <div className="flex gap-1 flex-wrap justify-end max-w-[180px]">
+              {PERIODS.map(p => (
+                <button
+                  key={p.key}
+                  onClick={() => setPeriod(p.key)}
+                  className={`text-[11px] font-semibold px-2 py-1 rounded-md transition-colors ${
+                    period === p.key
+                      ? 'bg-primary-400 text-slate-900'
+                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {pieData.length === 0 ? (
             <div className="flex items-center justify-center h-40 text-sm text-slate-400">Sem dados no período</div>
           ) : (
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={190}>
               <PieChart>
-                <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={11}>
+                <Pie
+                  data={pieData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={70}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  labelLine={false}
+                  fontSize={11}
+                >
                   {pieData.map((entry: { color: string }, i: number) => (
                     <Cell key={i} fill={entry.color} />
                   ))}
@@ -121,6 +180,7 @@ export default function DashboardPage() {
               </PieChart>
             </ResponsiveContainer>
           )}
+
           <div className="mt-3 grid grid-cols-2 gap-2">
             {[
               { label: 'Taxa de ocupação', value: `${(dash?.occupancy_rate || 0).toFixed(0)}%`, color: 'text-primary-600' },
@@ -143,7 +203,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-sm font-bold text-slate-900">Novos clientes</h2>
-              <p className="text-xs text-slate-400">Últimos 14 dias</p>
+              <p className="text-xs text-slate-400">Últimos meses</p>
             </div>
             <Link to="/app/customers" className="text-xs text-primary-600 hover:underline font-medium">Ver todos</Link>
           </div>
