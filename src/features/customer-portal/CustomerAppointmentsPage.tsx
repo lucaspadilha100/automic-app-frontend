@@ -4,12 +4,12 @@ import { customerPortalApi } from '@/api/customerPortal.api'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { LoadingState } from '@/components/feedback/LoadingState'
 import { EmptyState } from '@/components/feedback/EmptyState'
-import { Calendar, ChevronLeft, XCircle, RefreshCw, ClipboardList, Image, Star, User, Scissors, CreditCard } from 'lucide-react'
+import { Calendar, ChevronLeft, XCircle, RefreshCw, ClipboardList, Image, Star, User, Scissors, CreditCard, ShoppingBag, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
-import { extractApiError } from '@/api/client'
+import { extractApiError, publicApiClient } from '@/api/client'
 
 type Tab = 'upcoming' | 'past' | 'history'
 type Appt = Record<string, unknown>
@@ -196,10 +196,35 @@ export default function CustomerAppointmentsPage() {
   const [rescheduleId, setRescheduleId] = useState<string | null>(null)
   const [newDateTime, setNewDateTime] = useState('')
 
+  const [lightbox, setLightbox] = useState<string | null>(null)
+
   const { data: appointments, isLoading } = useQuery({
     queryKey: ['customer-appointments', slug],
     queryFn: () => customerPortalApi.getAppointments(slug!),
   })
+
+  const { data: professionalsData } = useQuery({
+    queryKey: ['public-professionals', slug],
+    queryFn: () => publicApiClient.get<{ id: string; name: string; photo_url?: string; specialty?: string }[]>(`/public/${slug}/professionals`),
+    enabled: !!slug,
+  })
+
+  const { data: photosData } = useQuery({
+    queryKey: ['public-photos', slug],
+    queryFn: () => publicApiClient.get<{ id: string; photo_type: string; file_url: string; caption?: string }[]>(`/public/${slug}/photos`),
+    enabled: !!slug,
+  })
+
+  const { data: productsData } = useQuery({
+    queryKey: ['public-products', slug],
+    queryFn: () => publicApiClient.get<{ id: string; name: string; price: number; description?: string; image_url?: string }[]>(`/public/${slug}/products`),
+    enabled: !!slug,
+  })
+
+  const professionals = professionalsData?.data ?? []
+  const photos = photosData?.data ?? []
+  const products = productsData?.data ?? []
+  const portfolioPhotos = photos.filter(p => p.photo_type === 'before' || p.photo_type === 'after').slice(0, 6)
 
   const { data: procedureHistory, isLoading: isLoadingHistory } = useQuery({
     queryKey: ['customer-procedure-history', slug],
@@ -331,6 +356,104 @@ export default function CustomerAppointmentsPage() {
             ))
         )}
       </div>
+
+      {/* ── Extra sections (always visible) ── */}
+      {(professionals.length > 0 || portfolioPhotos.length > 0 || products.length > 0) && (
+        <div className="p-4 max-w-lg mx-auto pb-24 space-y-6">
+          <hr className="my-6 border-slate-200" />
+
+          {/* Nossa Equipe */}
+          {professionals.length > 0 && (
+            <section>
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Nossa Equipe</h3>
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+                {professionals.map(prof => (
+                  <div key={prof.id} className="flex-shrink-0 w-24 text-center">
+                    {prof.photo_url ? (
+                      <img src={prof.photo_url} className="w-16 h-16 rounded-2xl object-cover mx-auto mb-2 border border-slate-200" />
+                    ) : (
+                      <div className="w-16 h-16 rounded-2xl bg-slate-100 mx-auto mb-2 flex items-center justify-center">
+                        <span className="text-xl font-bold text-slate-400">{prof.name.charAt(0)}</span>
+                      </div>
+                    )}
+                    <p className="text-xs font-semibold text-slate-700 leading-tight">{prof.name}</p>
+                    {prof.specialty && <p className="text-[10px] text-slate-400 mt-0.5">{prof.specialty}</p>}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Antes & Depois */}
+          {portfolioPhotos.length > 0 && (
+            <section>
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Antes &amp; Depois</h3>
+              <div className="grid grid-cols-3 gap-2">
+                {portfolioPhotos.map(photo => (
+                  <button
+                    key={photo.id}
+                    onClick={() => setLightbox(photo.file_url)}
+                    className="aspect-square rounded-xl overflow-hidden border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <img src={photo.file_url} alt={photo.caption || ''} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Produtos */}
+          {products.length > 0 && (
+            <section>
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Produtos</h3>
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+                {products.map(product => (
+                  <div key={product.id} className="flex-shrink-0 w-40 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    {product.image_url ? (
+                      <img src={product.image_url} alt={product.name} className="w-full h-28 object-cover" />
+                    ) : (
+                      <div className="w-full h-28 bg-slate-100 flex items-center justify-center">
+                        <ShoppingBag className="w-8 h-8 text-slate-300" />
+                      </div>
+                    )}
+                    <div className="p-3">
+                      <p className="text-xs font-semibold text-slate-800 leading-tight line-clamp-2 mb-1">{product.name}</p>
+                      {product.price != null && (
+                        <p className="text-xs font-bold text-primary-600 mb-2">
+                          R$ {product.price.toFixed(2).replace('.', ',')}
+                        </p>
+                      )}
+                      <button
+                        onClick={() => toast('Entre em contato para adquirir')}
+                        className="w-full py-1.5 rounded-xl bg-primary-50 text-primary-700 text-[11px] font-semibold hover:bg-primary-100 transition-colors">
+                        Quero esse
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}>
+          <button
+            className="absolute top-4 right-4 text-white/80 hover:text-white"
+            onClick={() => setLightbox(null)}>
+            <X className="w-7 h-7" />
+          </button>
+          <img
+            src={lightbox}
+            alt=""
+            className="max-w-full max-h-[90vh] rounded-2xl object-contain"
+            onClick={e => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       {/* Cancel modal */}
       {cancelId && (

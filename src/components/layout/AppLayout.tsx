@@ -57,13 +57,20 @@ function NavContent({ onClose }: { onClose?: () => void }) {
     enabled: !!user && user.role !== 'super_admin',
   })
 
-  const nav = baseNav.map(section => {
-    if (section.section !== 'Cadastros') return section
-    const extraItems = []
-    if (features?.ecommerce) extraItems.push({ to: '/app/products', label: 'Produtos', icon: ShoppingBag })
-    if (features?.product_usage) extraItems.push({ to: '/app/supplies', label: 'Insumos', icon: FlaskConical })
-    return { ...section, items: [...section.items, ...extraItems] }
-  })
+  const isProf = user?.role === 'professional'
+
+  const nav = isProf
+    ? [{ section: 'Agenda', items: [
+        { to: '/app/my-schedule', label: 'Minha Agenda', icon: CalendarDays },
+        { to: '/app/customers', label: 'Clientes', icon: Users },
+      ]}]
+    : baseNav.map(section => {
+        if (section.section !== 'Cadastros') return section
+        const extraItems = []
+        if (features?.ecommerce) extraItems.push({ to: '/app/products', label: 'Produtos', icon: ShoppingBag })
+        if (features?.product_usage) extraItems.push({ to: '/app/supplies', label: 'Insumos', icon: FlaskConical })
+        return { ...section, items: [...section.items, ...extraItems] }
+      })
 
   const handleLogout = () => {
     logout()

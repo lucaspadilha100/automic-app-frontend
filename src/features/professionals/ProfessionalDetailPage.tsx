@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { extractApiError } from '@/api/client'
 import { useForm } from 'react-hook-form'
+import { KeyRound, CheckCircle } from 'lucide-react'
 
 const DAYS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado']
 const DEFAULT_AVAIL = DAYS.map((_, i) => ({
@@ -16,6 +17,7 @@ const DEFAULT_AVAIL = DAYS.map((_, i) => ({
 }))
 
 type ProfForm = { name: string; email: string; phone: string; bio: string }
+type LoginForm = { login_email: string; password: string; confirm: string }
 
 export default function ProfessionalDetailPage() {
   const { professionalId } = useParams<{ professionalId: string }>()
@@ -23,7 +25,8 @@ export default function ProfessionalDetailPage() {
   const qc = useQueryClient()
   const isNew = !professionalId || professionalId === 'new'
 
-  const [tab, setTab] = useState<'info'|'services'|'availability'>('info')
+  const [tab, setTab] = useState<'info'|'services'|'availability'|'access'>('info')
+  const [loginForm, setLoginForm] = useState<LoginForm>({ login_email: '', password: '', confirm: '' })
   const [availability, setAvailability] = useState(DEFAULT_AVAIL)
   const [selectedServices, setSelectedServices] = useState<string[]>([])
 
@@ -80,6 +83,20 @@ export default function ProfessionalDetailPage() {
     onError: (e: unknown) => toast.error(extractApiError(e)),
   })
 
+  const enableLoginMut = useMutation({
+    mutationFn: () => apiClient.post(`/professionals/${professionalId}/enable-login`, {
+      login_email: loginForm.login_email,
+      password: loginForm.password,
+    }),
+    onSuccess: (r) => {
+      const data = r.data as { created?: boolean; updated?: boolean }
+      toast.success(data.created ? 'Acesso criado! O profissional já pode fazer login.' : 'Senha atualizada com sucesso.')
+      qc.invalidateQueries({ queryKey: ['professional', professionalId] })
+      setLoginForm({ login_email: '', password: '', confirm: '' })
+    },
+    onError: (e: unknown) => toast.error(extractApiError(e)),
+  })
+
   const onSubmit = (data: ProfForm) => isNew ? createMut.mutate(data) : updateMut.mutate(data)
 
   if (!isNew && isLoading) return <LoadingState />
@@ -93,7 +110,7 @@ export default function ProfessionalDetailPage() {
 
       {!isNew && (
         <div className="tabs">
-          {[['info','Informações'],['services','Serviços'],['availability','Disponibilidade']].map(([k,l]) => (
+          {[['info','Informações'],['services','Serviços'],['availability','Disponibilidade'],['access','Acesso Portal']].map(([k,l]) => (
             <button key={k} className={`tab ${tab===k?'tab-active':''}`} onClick={() => setTab(k as typeof tab)}>{l}</button>
           ))}
         </div>
@@ -181,6 +198,73 @@ export default function ProfessionalDetailPage() {
             <button className="btn-primary" onClick={() => availMut.mutate(availability)} disabled={availMut.isPending}>
               Salvar disponibilidade
             </button>
+          </div>
+        </div>
+      )}
+      {tab === 'access' && !isNew && (
+        <div className="card p-6 space-y-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center">
+              <KeyRound className="w-5 h-5 text-primary-600" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Acesso ao Portal do Profissional</h3>
+              <p className="text-xs text-slate-500">O profissional poderá fazer login em <strong>/login</strong> para ver sua própria agenda.</p>
+            </div>
+          </div>
+
+          {professional?.user_id && (
+            <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+              <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
+              <p className="text-sm text-green-700">Acesso já habilitado. Para redefinir a senha, preencha abaixo.</p>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <div>
+              <label className="label">E-mail de login</label>
+              <input
+                className="input"
+                type="email"
+                placeholder="profissional@email.com"
+                value={loginForm.login_email}
+                onChange={e => setLoginForm(f => ({ ...f, login_email: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="label">{professional?.user_id ? 'Nova senha' : 'Senha'}</label>
+              <input
+                className="input"
+                type="password"
+                placeholder="Mínimo 8 caracteres"
+                value={loginForm.password}
+                onChange={e => setLoginForm(f => ({ ...f, password: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="label">Confirmar senha</label>
+              <input
+                className="input"
+                type="password"
+                placeholder="Repita a senha"
+                value={loginForm.confirm}
+                onChange={e => setLoginForm(f => ({ ...f, confirm: e.target.value }))}
+              />
+            </div>
+            <button
+              className="btn-primary w-full"
+              disabled={
+                !loginForm.login_email || !loginForm.password ||
+                loginForm.password !== loginForm.confirm ||
+                loginForm.password.length < 8 ||
+                enableLoginMut.isPending
+              }
+              onClick={() => enableLoginMut.mutate()}>
+              {professional?.user_id ? 'Atualizar acesso' : 'Habilitar acesso'}
+            </button>
+            {loginForm.password && loginForm.confirm && loginForm.password !== loginForm.confirm && (
+              <p className="text-xs text-red-500">As senhas não coincidem.</p>
+            )}
           </div>
         </div>
       )}

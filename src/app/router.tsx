@@ -29,6 +29,7 @@ const MasterNotificationsPage = lazy(() => import('@/features/master/MasterNotif
 const MasterSupportPage = lazy(() => import('@/features/master/MasterSupportPage'))
 const MasterPlatformPage = lazy(() => import('@/features/master/MasterPlatformPage'))
 
+const MySchedulePage = lazy(() => import('@/features/schedule/MySchedulePage'))
 const DashboardPage = lazy(() => import('@/features/tenant-dashboard/DashboardPage'))
 const AppointmentsPage = lazy(() => import('@/features/appointments/AppointmentsPage'))
 const NewAppointmentPage = lazy(() => import('@/features/appointments/NewAppointmentPage'))
@@ -121,6 +122,7 @@ const router = createBrowserRouter([
   { path: '/master', element: <Navigate to="/master/dashboard" replace /> },
 
   // Tenant app
+  { path: '/app/my-schedule', element: A(<MySchedulePage />) },
   { path: '/app/dashboard', element: A(<DashboardPage />) },
   { path: '/app/appointments', element: A(<AppointmentsPage />) },
   { path: '/app/appointments/new', element: A(<NewAppointmentPage />) },
