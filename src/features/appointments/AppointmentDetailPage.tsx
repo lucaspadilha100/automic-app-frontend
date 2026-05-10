@@ -10,7 +10,18 @@ import { LoadingState } from '@/components/feedback/LoadingState'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { CheckCircle, Play, Flag, XCircle, Clock, CreditCard, RefreshCw, User, History, FlaskConical, Plus, Trash2 } from 'lucide-react'
+import { CheckCircle, Play, Flag, XCircle, Clock, CreditCard, RefreshCw, User, History, FlaskConical, Plus, Trash2, ArrowLeft } from 'lucide-react'
+
+const STATUS_PT: Record<string, string> = {
+  scheduled: 'Agendado',
+  confirmed: 'Confirmado',
+  in_progress: 'Em atendimento',
+  completed: 'Concluído',
+  cancelled: 'Cancelado',
+  no_show: 'Não compareceu',
+  rescheduled: 'Reagendado',
+  pending_payment: 'Aguardando pagamento',
+}
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { extractApiError } from '@/api/client'
@@ -109,12 +120,20 @@ export default function AppointmentDetailPage() {
   const services = appt.appointment_services || []
   const professional = appt.professional
 
+  const customerName = (appt.customer_account as { name: string } | null)?.name || '—'
+
   return (
     <div className="space-y-5 animate-fade-in">
+      <div className="flex items-center gap-3 -mb-1">
+        <button
+          onClick={() => navigate('/app/appointments')}
+          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors font-medium">
+          <ArrowLeft className="w-4 h-4" /> Voltar
+        </button>
+      </div>
       <PageHeader
         title="Agendamento"
-        subtitle={appt.customer_name || 'Cliente'}
-        back={() => navigate('/app/appointments')}
+        subtitle={customerName}
       />
 
       {/* Status + main info */}
@@ -125,7 +144,7 @@ export default function AppointmentDetailPage() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <InfoRow icon={Clock} label="Data/Hora" value={format(new Date(appt.start_datetime), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} />
-          <InfoRow icon={User} label="Cliente" value={appt.customer_name || '—'} />
+          <InfoRow icon={User} label="Cliente" value={customerName} />
           {professional && <InfoRow icon={User} label="Profissional" value={professional.name} />}
           {services.length > 0 && (
             <div>
@@ -206,9 +225,9 @@ export default function AppointmentDetailPage() {
               <li key={entry.id} className="ml-4">
                 <span className="absolute -left-1.5 mt-1 w-3 h-3 rounded-full bg-indigo-400 border-2 border-white" />
                 <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="font-medium text-slate-600">{entry.from_status}</span>
-                  <span className="text-slate-400">→</span>
-                  <span className="font-semibold text-slate-800">{entry.to_status}</span>
+                  {entry.from_status && <span className="font-medium text-slate-600">{STATUS_PT[entry.from_status] ?? entry.from_status}</span>}
+                  {entry.from_status && <span className="text-slate-400">→</span>}
+                  <span className="font-semibold text-slate-800">{STATUS_PT[entry.to_status] ?? entry.to_status}</span>
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">
                   {entry.changed_by_name} · {format(new Date(entry.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
