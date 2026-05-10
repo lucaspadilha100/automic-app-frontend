@@ -68,6 +68,8 @@ const CouponsPage = lazy(() => import('@/features/coupons/CouponsPage'))
 const ProcedurePhotosPage = lazy(() => import('@/features/procedure-photos/ProcedurePhotosPage'))
 const UsersPage = lazy(() => import('@/features/users/UsersPage'))
 const TermsPage = lazy(() => import('@/features/settings/TermsPage'))
+const ProductsPage = lazy(() => import('@/features/products/ProductsPage'))
+const SuppliesPage = lazy(() => import('@/features/supplies/SuppliesPage'))
 const PublicBookingPage = lazy(() => import('@/features/public-booking/PublicBookingPage'))
 const CustomerAppointmentsPage = lazy(() => import('@/features/customer-portal/CustomerAppointmentsPage'))
 const CustomerPackagesPage = lazy(() => import('@/features/customer-portal/CustomerPackagesPage'))
@@ -164,6 +166,8 @@ const router = createBrowserRouter([
   { path: '/app/reviews', element: A(<ReviewsPage />) },
   { path: '/app/coupons', element: A(<CouponsPage />) },
   { path: '/app/procedure-photos', element: A(<ProcedurePhotosPage />) },
+  { path: '/app/products', element: A(<ProductsPage />) },
+  { path: '/app/supplies', element: A(<SuppliesPage />) },
 
   // Public booking (mobile-first)
   { path: '/:slug', element: S(<PublicBookingPage />) },

@@ -2,12 +2,15 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Calendar, CalendarDays, Users, Scissors, Package, CreditCard,
   Settings, Building2, BookOpen, Bell, Zap, Headphones,
-  LogOut, ClipboardList, BarChart3, ClipboardCheck, Menu, X, TrendingUp, MessageCircle, Star, Tag, Images,
+  LogOut, ClipboardList, BarChart3, ClipboardCheck, Menu, X, TrendingUp, MessageCircle,
+  Star, Tag, Images, ShoppingBag, FlaskConical,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
+import { useQuery } from '@tanstack/react-query'
+import { settingsApi } from '@/api/settings.api'
 import { useState } from 'react'
 
-const nav = [
+const baseNav = [
   { section: 'Principal', items: [
     { to: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/app/calendar', label: 'Agenda', icon: Calendar },
@@ -46,6 +49,21 @@ const nav = [
 function NavContent({ onClose }: { onClose?: () => void }) {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
+
+  const { data: features } = useQuery({
+    queryKey: ['effective-features'],
+    queryFn: settingsApi.getEffectiveFeatures,
+    staleTime: 5 * 60 * 1000,
+    enabled: !!user && user.role !== 'super_admin',
+  })
+
+  const nav = baseNav.map(section => {
+    if (section.section !== 'Cadastros') return section
+    const extraItems = []
+    if (features?.ecommerce) extraItems.push({ to: '/app/products', label: 'Produtos', icon: ShoppingBag })
+    if (features?.product_usage) extraItems.push({ to: '/app/supplies', label: 'Insumos', icon: FlaskConical })
+    return { ...section, items: [...section.items, ...extraItems] }
+  })
 
   const handleLogout = () => {
     logout()
@@ -115,17 +133,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
 
-  // Close mobile sidebar on navigation
   const handleClose = () => setMobileOpen(false)
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
-      {/* Desktop sidebar */}
       <aside className="hidden lg:flex flex-col w-60 shrink-0 bg-white border-r border-slate-200">
         <NavContent />
       </aside>
 
-      {/* Mobile sidebar overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-slate-900/50" onClick={handleClose} />
@@ -135,9 +150,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* Main */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Mobile topbar */}
         <div className="lg:hidden flex items-center gap-3 px-4 h-14 bg-white border-b border-slate-200 shrink-0">
           <button onClick={() => setMobileOpen(true)} className="text-slate-600 hover:text-slate-900">
             <Menu className="w-5 h-5" />

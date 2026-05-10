@@ -2,13 +2,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
 import { appointmentsApi } from '@/api/appointments.api'
 import { paymentsApi } from '@/api/payments.api'
+import { suppliesApi } from '@/api/supplies.api'
+import { settingsApi } from '@/api/settings.api'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { LoadingState } from '@/components/feedback/LoadingState'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { CheckCircle, Play, Flag, XCircle, Clock, CreditCard, RefreshCw, User, History } from 'lucide-react'
+import { CheckCircle, Play, Flag, XCircle, Clock, CreditCard, RefreshCw, User, History, FlaskConical, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { extractApiError } from '@/api/client'
@@ -27,6 +29,7 @@ export default function AppointmentDetailPage() {
   const [showPayment, setShowPayment] = useState(false)
   const [payAmount, setPayAmount] = useState('')
   const [payMethod, setPayMethod] = useState('pix')
+  const [supplyForm, setSupplyForm] = useState({ supply_id: '', quantity_used: '', notes: '' })
 
   const { data: appt, isLoading } = useQuery({
     queryKey: ['appointment', appointmentId],
@@ -37,6 +40,40 @@ export default function AppointmentDetailPage() {
     queryKey: ['appointment-history', appointmentId],
     queryFn: () => appointmentsApi.statusHistory(appointmentId!),
     enabled: !!appointmentId,
+  })
+
+  const { data: features } = useQuery({
+    queryKey: ['effective-features'],
+    queryFn: settingsApi.getEffectiveFeatures,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const { data: supplies } = useQuery({
+    queryKey: ['supplies'],
+    queryFn: () => suppliesApi.list({ is_active: true }),
+    enabled: !!features?.product_usage,
+  })
+
+  const { data: supplyUsage, refetch: refetchUsage } = useQuery({
+    queryKey: ['supply-usage', appointmentId],
+    queryFn: () => suppliesApi.getAppointmentUsage(appointmentId!),
+    enabled: !!appointmentId && !!features?.product_usage,
+  })
+
+  const addUsageMut = useMutation({
+    mutationFn: () => suppliesApi.addUsage(appointmentId!, {
+      supply_id: supplyForm.supply_id,
+      quantity_used: Number(supplyForm.quantity_used),
+      notes: supplyForm.notes || undefined,
+    }),
+    onSuccess: () => { refetchUsage(); setSupplyForm({ supply_id: '', quantity_used: '', notes: '' }); toast.success('Insumo registrado') },
+    onError: (e: unknown) => toast.error(extractApiError(e)),
+  })
+
+  const removeUsageMut = useMutation({
+    mutationFn: (usageId: string) => suppliesApi.removeUsage(appointmentId!, usageId),
+    onSuccess: () => { refetchUsage(); toast.success('Insumo removido') },
+    onError: (e: unknown) => toast.error(extractApiError(e)),
   })
 
   const invalidate = () => {
@@ -182,6 +219,58 @@ export default function AppointmentDetailPage() {
               </li>
             ))}
           </ol>
+        </div>
+      )}
+
+      {/* Supply usage section */}
+      {features?.product_usage && (
+        <div className="card p-5">
+          <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-1.5 mb-4">
+            <FlaskConical className="w-4 h-4 text-slate-400" /> Insumos utilizados
+          </h3>
+          <div className="space-y-2 mb-4">
+            {(supplyUsage as Array<{ id: string; supply_name?: string; quantity_used: number; notes?: string }> | undefined)?.map(u => (
+              <div key={u.id} className="flex items-center justify-between text-sm py-1.5 border-b border-slate-100 last:border-0">
+                <div>
+                  <span className="font-medium text-slate-700">{u.supply_name}</span>
+                  <span className="text-slate-400 ml-2">× {u.quantity_used}</span>
+                  {u.notes && <span className="text-xs text-slate-400 ml-2 italic">{u.notes}</span>}
+                </div>
+                <button onClick={() => removeUsageMut.mutate(u.id)} className="text-slate-300 hover:text-red-500 transition-colors">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+            {!supplyUsage?.length && <p className="text-xs text-slate-400">Nenhum insumo registrado</p>}
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <select
+              className="input text-sm col-span-1"
+              value={supplyForm.supply_id}
+              onChange={e => setSupplyForm(f => ({ ...f, supply_id: e.target.value }))}
+            >
+              <option value="">Insumo...</option>
+              {(supplies as Array<{ id: string; name: string; unit: string }> | undefined)?.map(s => (
+                <option key={s.id} value={s.id}>{s.name} ({s.unit})</option>
+              ))}
+            </select>
+            <input
+              type="number"
+              min="0"
+              step="0.001"
+              className="input text-sm"
+              placeholder="Qtd."
+              value={supplyForm.quantity_used}
+              onChange={e => setSupplyForm(f => ({ ...f, quantity_used: e.target.value }))}
+            />
+            <button
+              className="btn-secondary text-sm"
+              disabled={!supplyForm.supply_id || !supplyForm.quantity_used || addUsageMut.isPending}
+              onClick={() => addUsageMut.mutate()}
+            >
+              <Plus className="w-3.5 h-3.5" /> Adicionar
+            </button>
+          </div>
         </div>
       )}
 
