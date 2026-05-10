@@ -15,4 +15,5 @@ export const settingsApi = {
   createWebhook: async (data: { url: string; secret?: string; event_types?: string[]; is_active?: boolean }) => { const r = await apiClient.post<Webhook>('/settings/webhooks', data); return r.data },
   updateWebhook: async (id: string, data: { url: string; is_active?: boolean }) => { const r = await apiClient.put<Webhook>(`/settings/webhooks/${id}`, data); return r.data },
   deleteWebhook: async (id: string) => { const r = await apiClient.delete(`/settings/webhooks/${id}`); return r.data },
+  getEffectiveFeatures: async (): Promise<Record<string, boolean>> => (await apiClient.get('/settings/effective-features')).data,
 }
