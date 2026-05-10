@@ -11,6 +11,7 @@ const JOBS = [
   { id: 'enforce-billing', label: 'Enforcement de billing', desc: 'Suspende/cancela tenants por inadimplência (somente billing_mode=automatic)', icon: RefreshCw, color: 'red' },
   { id: 'run-trial-expiration', label: 'Expirar trials', desc: 'Suspende tenants cujo trial acabou', icon: Clock, color: 'yellow' },
   { id: 'send-24h-reminders', label: 'Lembretes 24h', desc: 'Envia notificações de agendamentos de amanhã', icon: Bell, color: 'green' },
+  { id: 'check-low-stock', label: 'Verificar estoque baixo', desc: 'Lista produtos e insumos com estoque abaixo do limite configurado', icon: AlertTriangle, color: 'orange' },
 ]
 
 const iconColors: Record<string, string> = {

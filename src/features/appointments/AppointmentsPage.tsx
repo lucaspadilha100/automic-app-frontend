@@ -8,7 +8,7 @@ import { Calendar, Plus, Search } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import toast from 'react-hot-toast'
 import { extractApiError } from '@/api/client'
@@ -21,6 +21,7 @@ export default function AppointmentsPage() {
   const [search, setSearch] = useState('')
   const [cancelId, setCancelId] = useState<string | null>(null)
   const [cancelReason, setCancelReason] = useState('')
+  const [page, setPage] = useState(0)
 
   const { data, isLoading } = useQuery({
     queryKey: ['appointments', status],
@@ -33,6 +34,8 @@ export default function AppointmentsPage() {
     onError: (e) => toast.error(extractApiError(e)),
   })
 
+  useEffect(() => { setPage(0) }, [search, status])
+
   const appts = (data || []).filter((a: Record<string,unknown>) => {
     if (!search) return true
     const term = search.toLowerCase()
@@ -41,6 +44,8 @@ export default function AppointmentsPage() {
       (a.appointment_services as {service_name_snapshot:string}[])?.[0]?.service_name_snapshot?.toLowerCase().includes(term)
     )
   })
+
+  const pagedAppts = appts.slice(page * 20, (page + 1) * 20)
 
   if (isLoading) return <div><PageHeader title="Agendamentos" /><SkeletonTable /></div>
 
@@ -73,21 +78,21 @@ export default function AppointmentsPage() {
             <thead className="thead"><tr>
               <th className="th">Data/Hora</th>
               <th className="th">Cliente</th>
-              <th className="th">Serviço</th>
-              <th className="th">Profissional</th>
+              <th className="th hidden sm:table-cell">Serviço</th>
+              <th className="th hidden sm:table-cell">Profissional</th>
               <th className="th">Status</th>
               <th className="th">Ações</th>
             </tr></thead>
             <tbody>
-              {appts.map((a: Record<string,unknown>) => (
+              {pagedAppts.map((a: Record<string,unknown>) => (
                 <tr key={a.id as string} className="tr">
                   <td className="td">
                     <p className="font-semibold text-slate-800">{format(new Date(a.start_datetime as string), 'dd/MM/yyyy', { locale: ptBR })}</p>
                     <p className="text-xs text-slate-400">{format(new Date(a.start_datetime as string), 'HH:mm')} – {format(new Date(a.end_datetime as string), 'HH:mm')}</p>
                   </td>
                   <td className="td font-medium">{a.customer_name as string || '—'}</td>
-                  <td className="td text-sm text-slate-500">{(a.appointment_services as {service_name_snapshot:string}[])?.[0]?.service_name_snapshot || '—'}</td>
-                  <td className="td text-sm text-slate-500">{(a.professional as {name:string})?.name || '—'}</td>
+                  <td className="td text-sm text-slate-500 hidden sm:table-cell">{(a.appointment_services as {service_name_snapshot:string}[])?.[0]?.service_name_snapshot || '—'}</td>
+                  <td className="td text-sm text-slate-500 hidden sm:table-cell">{(a.professional as {name:string})?.name || '—'}</td>
                   <td className="td"><StatusBadge status={a.status as string} /></td>
                   <td className="td">
                     <div className="flex items-center gap-2">
@@ -103,6 +108,14 @@ export default function AppointmentsPage() {
           </table>
         )}
       </div>
+
+      {appts.length > 20 && (
+        <div className="flex items-center justify-between pt-4">
+          <button disabled={page === 0} onClick={() => setPage(p => p - 1)} className="btn-ghost text-sm">← Anterior</button>
+          <span className="text-xs text-slate-400">Página {page + 1} de {Math.ceil(appts.length / 20)}</span>
+          <button disabled={(page + 1) * 20 >= appts.length} onClick={() => setPage(p => p + 1)} className="btn-ghost text-sm">Próxima →</button>
+        </div>
+      )}
 
       {/* Cancel modal */}
       {cancelId && (

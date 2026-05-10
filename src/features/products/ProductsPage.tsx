@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { extractApiError } from '@/api/client'
 import { productsApi } from '@/api/products.api'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { LoadingState } from '@/components/feedback/LoadingState'
+import { SkeletonList } from '@/components/feedback/LoadingState'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { ShoppingBag, Plus, Power, PowerOff, Pencil, X, Trash2, ShoppingCart, Check } from 'lucide-react'
 import { useState } from 'react'
@@ -232,8 +232,8 @@ export default function ProductsPage() {
     return p.track_stock && p.low_stock_threshold != null && p.stock_quantity != null && p.stock_quantity <= p.low_stock_threshold
   }
 
-  if (loadingProducts && tab === 'products') return <LoadingState />
-  if (loadingOrders && tab === 'orders') return <LoadingState />
+  if (loadingProducts && tab === 'products') return <SkeletonList />
+  if (loadingOrders && tab === 'orders') return <SkeletonList />
 
   return (
     <div className="space-y-5 animate-fade-in">

@@ -7,6 +7,25 @@ export function LoadingState({ text = 'Carregando...' }: { text?: string }) {
   )
 }
 
+export function SkeletonCard({ lines = 3 }: { lines?: number }) {
+  return (
+    <div className="card p-4 animate-pulse space-y-3">
+      <div className="h-4 bg-slate-200 rounded w-2/3" />
+      {Array.from({ length: lines - 1 }).map((_, i) => (
+        <div key={i} className="h-3 bg-slate-100 rounded" style={{ width: `${85 - i * 15}%` }} />
+      ))}
+    </div>
+  )
+}
+
+export function SkeletonList({ count = 4 }: { count?: number }) {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: count }).map((_, i) => <SkeletonCard key={i} />)}
+    </div>
+  )
+}
+
 export function SkeletonTable({ rows = 5, cols = 4 }) {
   return (
     <div className="table-wrap animate-pulse">

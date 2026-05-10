@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient, extractApiError } from '@/api/client'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { LoadingState } from '@/components/feedback/LoadingState'
+import { SkeletonList } from '@/components/feedback/LoadingState'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { Tag, Plus, Power, PowerOff, Pencil, X, Check } from 'lucide-react'
 import { useState } from 'react'
@@ -102,7 +102,7 @@ export default function CouponsPage() {
     setForm(EMPTY_FORM)
   }
 
-  if (isLoading) return <LoadingState />
+  if (isLoading) return <SkeletonList />
 
   return (
     <div className="space-y-5 animate-fade-in">

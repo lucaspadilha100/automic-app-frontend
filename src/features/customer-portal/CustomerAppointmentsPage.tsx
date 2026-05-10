@@ -4,7 +4,7 @@ import { customerPortalApi } from '@/api/customerPortal.api'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { LoadingState } from '@/components/feedback/LoadingState'
 import { EmptyState } from '@/components/feedback/EmptyState'
-import { Calendar, ChevronLeft, XCircle, RefreshCw } from 'lucide-react'
+import { Calendar, ChevronLeft, XCircle, RefreshCw, ClipboardList, Image } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useState } from 'react'
@@ -14,6 +14,7 @@ import { extractApiError } from '@/api/client'
 export default function CustomerAppointmentsPage() {
   const { slug } = useParams<{ slug: string }>()
   const qc = useQueryClient()
+  const [tab, setTab] = useState<'upcoming' | 'past' | 'history'>('upcoming')
   const [cancelId, setCancelId] = useState<string|null>(null)
   const [cancelReason, setCancelReason] = useState('')
   const [rescheduleId, setRescheduleId] = useState<string|null>(null)
@@ -22,6 +23,12 @@ export default function CustomerAppointmentsPage() {
   const { data: appointments, isLoading } = useQuery({
     queryKey: ['customer-appointments', slug],
     queryFn: () => customerPortalApi.getAppointments(slug!),
+  })
+
+  const { data: procedureHistory, isLoading: isLoadingHistory } = useQuery({
+    queryKey: ['customer-procedure-history', slug],
+    queryFn: () => customerPortalApi.getProcedureHistory(slug!),
+    enabled: tab === 'history',
   })
 
   const cancelMut = useMutation({
@@ -94,28 +101,89 @@ export default function CustomerAppointmentsPage() {
         <Link to={`/${slug}`} className="ml-auto text-xs font-semibold text-primary-600">+ Novo</Link>
       </div>
 
+      {/* Tabs */}
+      <div className="sticky top-[53px] bg-white border-b border-slate-200 z-10">
+        <div className="flex max-w-lg mx-auto">
+          {(['upcoming', 'past', 'history'] as const).map((t) => {
+            const labels = { upcoming: 'Próximos', past: 'Anteriores', history: 'Histórico' }
+            return (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`flex-1 py-3 text-xs font-semibold border-b-2 transition-colors ${tab === t ? 'border-primary-500 text-primary-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+              >
+                {labels[t]}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       <div className="p-4 max-w-lg mx-auto space-y-6">
-        {!appointments?.length ? (
-          <EmptyState icon={Calendar} title="Nenhum agendamento" description="Você ainda não tem agendamentos" action={<Link to={`/${slug}`} className="btn-primary">Agendar agora</Link>} />
-        ) : (
-          <>
-            {upcoming.length > 0 && (
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Próximos</p>
-                <div className="space-y-3">
-                  {upcoming.map((a: Record<string,unknown>) => <AppCard key={a.id as string} appt={a} />)}
+        {/* Upcoming tab */}
+        {tab === 'upcoming' && (
+          !upcoming.length ? (
+            <EmptyState icon={Calendar} title="Nenhum agendamento próximo" description="Você não tem agendamentos futuros" action={<Link to={`/${slug}`} className="btn-primary">Agendar agora</Link>} />
+          ) : (
+            <div className="space-y-3">
+              {upcoming.map((a: Record<string,unknown>) => <AppCard key={a.id as string} appt={a} />)}
+            </div>
+          )
+        )}
+
+        {/* Past tab */}
+        {tab === 'past' && (
+          !past.length ? (
+            <EmptyState icon={Calendar} title="Nenhum agendamento anterior" description="Você ainda não tem agendamentos concluídos" action={<Link to={`/${slug}`} className="btn-primary">Agendar agora</Link>} />
+          ) : (
+            <div className="space-y-3 opacity-80">
+              {past.slice(0, 10).map((a: Record<string,unknown>) => <AppCard key={a.id as string} appt={a} />)}
+            </div>
+          )
+        )}
+
+        {/* History tab */}
+        {tab === 'history' && (
+          isLoadingHistory ? <LoadingState /> :
+          !procedureHistory?.length ? (
+            <EmptyState icon={ClipboardList} title="Nenhum histórico" description="Ainda não há registros de procedimentos" />
+          ) : (
+            <div className="space-y-3">
+              {(procedureHistory as Record<string,unknown>[]).map((item) => (
+                <div key={item.id as string} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-soft">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <p className="font-bold text-slate-900">{item.title as string}</p>
+                    {item.procedure_date && (
+                      <span className="text-xs text-slate-400 whitespace-nowrap">
+                        {format(new Date(item.procedure_date as string), 'dd/MM/yyyy', { locale: ptBR })}
+                      </span>
+                    )}
+                  </div>
+
+                  {item.description && (
+                    <p className="text-sm text-slate-600 mb-2">{item.description as string}</p>
+                  )}
+
+                  {item.public_notes && (
+                    <p className="text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2 mb-2">{item.public_notes as string}</p>
+                  )}
+
+                  {item.recommended_return_date && (
+                    <p className="text-xs text-slate-400 mb-2">
+                      Retorno recomendado: {format(new Date(item.recommended_return_date as string), 'dd/MM/yyyy', { locale: ptBR })}
+                    </p>
+                  )}
+
+                  {(item.photos as unknown[])?.length > 0 && (
+                    <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100">
+                      <Image className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="text-xs text-primary-600 font-semibold">Ver fotos ({(item.photos as unknown[]).length})</span>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
-            {past.length > 0 && (
-              <div>
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Histórico</p>
-                <div className="space-y-3 opacity-70">
-                  {past.slice(0, 10).map((a: Record<string,unknown>) => <AppCard key={a.id as string} appt={a} />)}
-                </div>
-              </div>
-            )}
-          </>
+              ))}
+            </div>
+          )
         )}
       </div>
 
