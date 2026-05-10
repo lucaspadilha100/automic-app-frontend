@@ -12,6 +12,7 @@ export default function MasterDashboard() {
   const { data: plans } = useQuery({ queryKey: ['master','plans'], queryFn: () => masterApi.listPlans() })
   const { data: health } = useQuery({ queryKey: ['master','health'], queryFn: () => masterApi.getTenantsHealth() })
   const { data: tasks } = useQuery({ queryKey: ['master','tasks'], queryFn: () => masterApi.listTaskRuns({ limit: 5 }) })
+  const { data: mrr } = useQuery({ queryKey: ['master','mrr'], queryFn: () => masterApi.getMrr() })
 
   if (isLoading) return <LoadingState />
 
@@ -29,11 +30,12 @@ export default function MasterDashboard() {
         actions={<Link to="/master/tenants/new" className="btn-primary">+ Nova empresa</Link>}
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 stagger">
         <MetricCard title="Empresas" value={tenants?.length || 0} icon={Building2} color="cyan" />
         <MetricCard title="Ativas" value={counts['active'] || 0} icon={TrendingUp} color="green" />
         <MetricCard title="Em trial" value={counts['trial'] || 0} icon={Users} color="violet" />
         <MetricCard title="Em risco" value={atRisk} icon={AlertTriangle} color="orange" />
+        <MetricCard title="MRR" value={`R$ ${(mrr?.mrr || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} icon={TrendingUp} color="green" />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">

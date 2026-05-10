@@ -8,7 +8,7 @@ import { LoadingState } from '@/components/feedback/LoadingState'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { CheckCircle, Play, Flag, XCircle, Clock, CreditCard, RefreshCw, User } from 'lucide-react'
+import { CheckCircle, Play, Flag, XCircle, Clock, CreditCard, RefreshCw, User, History } from 'lucide-react'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { extractApiError } from '@/api/client'
@@ -31,6 +31,12 @@ export default function AppointmentDetailPage() {
   const { data: appt, isLoading } = useQuery({
     queryKey: ['appointment', appointmentId],
     queryFn: () => appointmentsApi.get(appointmentId!),
+  })
+
+  const { data: statusHistory } = useQuery({
+    queryKey: ['appointment-history', appointmentId],
+    queryFn: () => appointmentsApi.statusHistory(appointmentId!),
+    enabled: !!appointmentId,
   })
 
   const invalidate = () => {
@@ -149,6 +155,33 @@ export default function AppointmentDetailPage() {
         <div className="card p-4">
           <p className="text-xs font-semibold text-red-500 mb-1">Motivo do cancelamento</p>
           <p className="text-sm text-slate-700">{appt.cancellation_reason}</p>
+        </div>
+      )}
+
+      {/* Status history */}
+      {statusHistory && statusHistory.length > 0 && (
+        <div className="card p-5">
+          <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-1.5 mb-4">
+            <History className="w-4 h-4 text-slate-400" /> Histórico de status
+          </h3>
+          <ol className="relative border-l border-slate-200 space-y-4 ml-2">
+            {statusHistory.map((entry: { id: string; from_status: string; to_status: string; changed_by_name: string; reason?: string; created_at: string }) => (
+              <li key={entry.id} className="ml-4">
+                <span className="absolute -left-1.5 mt-1 w-3 h-3 rounded-full bg-indigo-400 border-2 border-white" />
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className="font-medium text-slate-600">{entry.from_status}</span>
+                  <span className="text-slate-400">→</span>
+                  <span className="font-semibold text-slate-800">{entry.to_status}</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {entry.changed_by_name} · {format(new Date(entry.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                </p>
+                {entry.reason && (
+                  <p className="text-xs text-slate-400 italic mt-0.5">{entry.reason}</p>
+                )}
+              </li>
+            ))}
+          </ol>
         </div>
       )}
 
