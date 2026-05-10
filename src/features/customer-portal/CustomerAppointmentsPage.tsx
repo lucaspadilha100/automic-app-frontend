@@ -193,8 +193,8 @@ function AppCard({
             </div>
             <div className="p-5 space-y-4">
               <p className="text-sm text-slate-500 text-center">
-                {services[0]?.service_name_snapshot || 'Agendamento'}<br />
-                {professionalName && <span className="text-xs">com {professionalName}</span>}
+                {apptServices[0]?.service_name_snapshot || 'Agendamento'}<br />
+                {professional?.name && <span className="text-xs">com {professional.name}</span>}
               </p>
               <StarRatingInput value={rating} onChange={setRating} />
               {rating > 0 && (
