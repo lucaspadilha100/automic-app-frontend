@@ -13,4 +13,12 @@ export const customerPortalApi = {
   getPackages: async (slug: string) => { const r = await customerApiClient.get<CustomerPackage[]>(`/customer/tenants/${slug}/packages`); return r.data },
   getPackage: async (slug: string, id: string) => { const r = await customerApiClient.get<CustomerPackage>(`/customer/tenants/${slug}/packages/${id}`); return r.data },
   getProcedureHistory: async (slug: string) => { const r = await customerApiClient.get<ProcedureHistory[]>(`/customer/tenants/${slug}/procedure-history`); return r.data },
+  getAppointmentReview: async (slug: string, appointmentId: string) => {
+    const r = await customerApiClient.get(`/customer/tenants/${slug}/appointments/${appointmentId}/review`)
+    return r.data as { id: string; rating: number; comment: string | null } | null
+  },
+  submitReview: async (slug: string, appointmentId: string, data: { rating: number; comment?: string }) => {
+    const r = await customerApiClient.post(`/customer/tenants/${slug}/appointments/${appointmentId}/review`, data)
+    return r.data
+  },
 }
