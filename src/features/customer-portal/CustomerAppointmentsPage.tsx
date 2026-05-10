@@ -357,62 +357,9 @@ export default function CustomerAppointmentsPage() {
         )}
       </div>
 
-      {/* ── Nossa Equipe (full-width dark section) ── */}
-      {professionals.length > 0 && (
-        <div className="bg-zinc-950 py-12 sm:py-16 mt-2">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6">
-            <div className="mb-8 sm:mb-10">
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-500 mb-2">Conheça</p>
-              <h2 className="text-2xl sm:text-3xl font-black text-white">Nossa Equipe</h2>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
-              {professionals.map(prof => (
-                <div key={prof.id} className="bg-zinc-900 rounded-2xl sm:rounded-3xl overflow-hidden group">
-                  {prof.photo_url ? (
-                    <img src={prof.photo_url} alt={prof.name}
-                      className="w-full aspect-square sm:aspect-[3/4] object-cover object-top group-hover:scale-105 transition-transform duration-500" />
-                  ) : (
-                    <div className="w-full aspect-square sm:aspect-[3/4] flex items-center justify-center bg-zinc-800">
-                      <span className="text-4xl sm:text-5xl font-black text-zinc-600">{prof.name.charAt(0)}</span>
-                    </div>
-                  )}
-                  <div className="p-3 sm:p-4">
-                    <p className="font-bold text-white text-sm sm:text-base leading-snug">{prof.name}</p>
-                    {prof.specialty && <p className="text-xs text-zinc-500 mt-0.5">{prof.specialty}</p>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Antes & Depois ── */}
-      {portfolioPhotos.length > 0 && (
-        <div className="bg-white py-12 sm:py-16">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6">
-            <div className="mb-8">
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-2">Portfólio</p>
-              <h2 className="text-2xl sm:text-3xl font-black text-zinc-900">Antes &amp; Depois</h2>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {portfolioPhotos.map(photo => (
-                <button
-                  key={photo.id}
-                  onClick={() => setLightbox(photo.file_url)}
-                  className="aspect-square rounded-2xl overflow-hidden bg-zinc-100 group focus:outline-none">
-                  <img src={photo.file_url} alt={photo.caption || ''}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── Produtos ── */}
       {products.length > 0 && (
-        <div className="bg-slate-50 py-12 sm:py-16 pb-28">
+        <div className="bg-slate-50 py-12 sm:py-16 mt-2">
           <div className="max-w-4xl mx-auto px-4 sm:px-6">
             <div className="mb-8">
               <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-2">Loja</p>
@@ -446,6 +393,59 @@ export default function CustomerAppointmentsPage() {
                     </button>
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Nossa Equipe (full-width dark section) ── */}
+      {professionals.length > 0 && (
+        <div className="bg-zinc-950 py-12 sm:py-16">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6">
+            <div className="mb-8 sm:mb-10">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-500 mb-2">Conheça</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-white">Nossa Equipe</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+              {professionals.map(prof => (
+                <div key={prof.id} className="bg-zinc-900 rounded-2xl sm:rounded-3xl overflow-hidden group">
+                  {prof.photo_url ? (
+                    <img src={prof.photo_url} alt={prof.name}
+                      className="w-full aspect-square sm:aspect-[3/4] object-cover object-top group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <div className="w-full aspect-square sm:aspect-[3/4] flex items-center justify-center bg-zinc-800">
+                      <span className="text-4xl sm:text-5xl font-black text-zinc-600">{prof.name.charAt(0)}</span>
+                    </div>
+                  )}
+                  <div className="p-3 sm:p-4">
+                    <p className="font-bold text-white text-sm sm:text-base leading-snug">{prof.name}</p>
+                    {prof.specialty && <p className="text-xs text-zinc-500 mt-0.5">{prof.specialty}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Antes & Depois ── */}
+      {portfolioPhotos.length > 0 && (
+        <div className="bg-white py-12 sm:py-16 pb-28">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6">
+            <div className="mb-8">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-2">Portfólio</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-zinc-900">Antes &amp; Depois</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {portfolioPhotos.map(photo => (
+                <button
+                  key={photo.id}
+                  onClick={() => setLightbox(photo.file_url)}
+                  className="aspect-square rounded-2xl overflow-hidden bg-zinc-100 group focus:outline-none">
+                  <img src={photo.file_url} alt={photo.caption || ''}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </button>
               ))}
             </div>
           </div>
