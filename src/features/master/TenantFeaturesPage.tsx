@@ -18,6 +18,7 @@ const ALL_FEATURES = [
   { key: 'physical_resources', label: 'Recursos físicos' },
   { key: 'webhooks', label: 'Webhooks' },
   { key: 'advanced_reports', label: 'Relatórios avançados' },
+  { key: 'page_customization', label: 'Personalização de página (seções)' },
 ]
 
 export default function TenantFeaturesPage() {

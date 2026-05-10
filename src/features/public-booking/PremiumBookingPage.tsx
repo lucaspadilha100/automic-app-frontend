@@ -162,6 +162,15 @@ export default function PremiumBookingPage() {
   const tenantName = info?.tenant?.name || ''
   const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : null
 
+  // Page section config helpers
+  const ps = info?.page_sections ?? {}
+  const sec = (key: string) => (ps as Record<string, Record<string, unknown>>)[key] ?? {}
+  const secBg = (key: string, fallback: string) => (sec(key).background_color as string | undefined) ?? fallback
+  const secVisible = (key: string) => sec(key).visible !== false
+  const secTitle = (key: string, fallback: string) => (sec(key).title as string | undefined) || fallback
+  const secLabel = (key: string, fallback: string) => (sec(key).label as string | undefined) || fallback
+  const secSubtitle = (key: string) => (sec(key).subtitle as string | undefined) ?? undefined
+
   function openDrawer(svcId?: string) {
     if (svcId) setSelectedServiceIds([svcId])
     setStep('services')
@@ -578,14 +587,18 @@ export default function PremiumBookingPage() {
           )}
         </div>
 
-        {info.theme?.cover_image_url ? (
-          <div className="absolute inset-0">
-            <img src={info.theme.cover_image_url} alt="" className="w-full h-full object-cover" />
-            <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, rgba(10,10,10,0.85) 0%, rgba(10,10,10,0.5) 50%, rgba(10,10,10,0.8) 100%)' }} />
-          </div>
-        ) : (
-          <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, #0a0a0a 0%, ${primary}22 100%)` }} />
-        )}
+        {(() => {
+          const heroCoverUrl = (sec('hero').background_image_url as string | undefined) || info.theme?.cover_image_url
+          const overlayOpacity = (sec('hero').overlay_opacity as number | undefined) ?? 0.7
+          return heroCoverUrl ? (
+            <div className="absolute inset-0">
+              <img src={heroCoverUrl} alt="" className="w-full h-full object-cover" />
+              <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, rgba(10,10,10,${overlayOpacity}) 0%, rgba(10,10,10,${overlayOpacity * 0.6}) 50%, rgba(10,10,10,${overlayOpacity}) 100%)` }} />
+            </div>
+          ) : (
+            <div className="absolute inset-0" style={{ background: secBg('hero', '') ? `linear-gradient(135deg, ${secBg('hero', '#0a0a0a')} 0%, ${primary}22 100%)` : `linear-gradient(135deg, #0a0a0a 0%, ${primary}22 100%)` }} />
+          )
+        })()}
 
         <div className="relative flex-1 flex items-end pb-12 sm:pb-16 pt-20 sm:pt-24">
           <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -696,24 +709,24 @@ export default function PremiumBookingPage() {
       </div>
 
       {/* ── About / Quem somos ───────────────────────────────────── */}
-      {hasAbout && (
-        <div className="bg-zinc-50 py-20 lg:py-28">
+      {hasAbout && secVisible('about') && (
+        <div className="py-20 lg:py-28" style={{ backgroundColor: secBg('about', '#f4f4f5') }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl">
               <p className="text-xs font-bold uppercase tracking-[0.3em] mb-4" style={{ color: primary }}>
-                Sobre nós
+                {secLabel('about', 'Sobre nós')}
               </p>
-              {info.settings?.homepage_title && (
+              {(secTitle('about', '') || info.settings?.homepage_title) && (
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-zinc-900 leading-tight mb-6">
-                  {info.settings.homepage_title}
+                  {secTitle('about', '') || info.settings?.homepage_title}
                 </h2>
               )}
-              {info.settings?.homepage_subtitle && (
+              {(secSubtitle('about') || info.settings?.homepage_subtitle) && (
                 <p className="text-lg text-zinc-600 leading-relaxed mb-4">
-                  {info.settings.homepage_subtitle}
+                  {secSubtitle('about') || info.settings?.homepage_subtitle}
                 </p>
               )}
-              {info.tenant?.short_description && !info.settings?.homepage_title && (
+              {info.tenant?.short_description && !secTitle('about', '') && !info.settings?.homepage_title && (
                 <p className="text-lg text-zinc-600 leading-relaxed">
                   {info.tenant.short_description}
                 </p>
@@ -723,7 +736,7 @@ export default function PremiumBookingPage() {
                 <button onClick={() => openDrawer()}
                   className="flex items-center gap-2 text-sm font-bold transition-colors hover:opacity-80"
                   style={{ color: primary }}>
-                  Agendar agora <ChevronRight className="w-4 h-4" />
+                  {(sec('about').cta_text as string | undefined) || 'Agendar agora'} <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -732,12 +745,12 @@ export default function PremiumBookingPage() {
       )}
 
       {/* ── Services ─────────────────────────────────────────────── */}
-      {services.length > 0 && (
-        <div id="services-section" className="py-20 lg:py-28 bg-white">
+      {services.length > 0 && secVisible('services') && (
+        <div id="services-section" className="py-20 lg:py-28" style={{ backgroundColor: secBg('services', '#ffffff') }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mb-12">
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-3">O que oferecemos</p>
-              <h2 className="text-3xl sm:text-4xl font-black text-zinc-900">Nossos serviços</h2>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-3">{secLabel('services', 'O que oferecemos')}</p>
+              <h2 className="text-3xl sm:text-4xl font-black text-zinc-900">{secTitle('services', 'Nossos serviços')}</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {services.map((svc, i) => (
@@ -774,12 +787,13 @@ export default function PremiumBookingPage() {
       )}
 
       {/* ── Team / Professionals ─────────────────────────────────── */}
-      {profsArr.length > 0 && (
-        <div className="py-20 lg:py-28 bg-zinc-950">
+      {profsArr.length > 0 && secVisible('team') && (
+        <div className="py-20 lg:py-28" style={{ backgroundColor: secBg('team', '#09090b') }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mb-12">
-              <p className="text-xs font-bold uppercase tracking-[0.3em] mb-3" style={{ color: primary }}>Conheça</p>
-              <h2 className="text-3xl sm:text-4xl font-black text-white">Nossa equipe</h2>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] mb-3" style={{ color: primary }}>{secLabel('team', 'Conheça')}</p>
+              <h2 className="text-3xl sm:text-4xl font-black text-white">{secTitle('team', 'Nossa equipe')}</h2>
+              {secSubtitle('team') && <p className="text-zinc-400 mt-2 text-sm">{secSubtitle('team')}</p>}
             </div>
 
             {/* Mobile: carousel */}
@@ -854,12 +868,12 @@ export default function PremiumBookingPage() {
       )}
 
       {/* ── Portfolio ────────────────────────────────────────────── */}
-      {photos.length > 0 && (
-        <div className="py-20 lg:py-28 bg-white">
+      {photos.length > 0 && secVisible('portfolio') && (
+        <div className="py-20 lg:py-28" style={{ backgroundColor: secBg('portfolio', '#ffffff') }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mb-12">
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-3">Nosso trabalho</p>
-              <h2 className="text-3xl sm:text-4xl font-black text-zinc-900">Portfólio</h2>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-3">{secLabel('portfolio', 'Nosso trabalho')}</p>
+              <h2 className="text-3xl sm:text-4xl font-black text-zinc-900">{secTitle('portfolio', 'Portfólio')}</h2>
             </div>
             <div className="columns-2 md:columns-3 lg:columns-4 gap-3 space-y-3">
               {photos.map((photo, i) => (
@@ -882,13 +896,13 @@ export default function PremiumBookingPage() {
       )}
 
       {/* ── Reviews ──────────────────────────────────────────────── */}
-      {reviews.length > 0 && (
-        <div className="py-20 lg:py-28 bg-zinc-50">
+      {reviews.length > 0 && secVisible('reviews') && (
+        <div className="py-20 lg:py-28" style={{ backgroundColor: secBg('reviews', '#f4f4f5') }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-end justify-between mb-12">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.3em] mb-3" style={{ color: primary }}>Depoimentos</p>
-                <h2 className="text-3xl sm:text-4xl font-black text-zinc-900">O que dizem</h2>
+                <p className="text-xs font-bold uppercase tracking-[0.3em] mb-3" style={{ color: primary }}>{secLabel('reviews', 'Depoimentos')}</p>
+                <h2 className="text-3xl sm:text-4xl font-black text-zinc-900">{secTitle('reviews', 'O que dizem')}</h2>
               </div>
               {avgRating && (
                 <div className="text-right hidden sm:block">
@@ -934,7 +948,7 @@ export default function PremiumBookingPage() {
 
 
       {/* ── Footer contact ───────────────────────────────────────── */}
-      <footer className="py-8 sm:py-10 bg-zinc-950 border-t border-zinc-900">
+      <footer className="py-8 sm:py-10 border-t border-zinc-900" style={{ backgroundColor: secBg('footer', '#09090b') }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div className="flex items-center gap-3">
             {info.theme?.logo_url && <img src={info.theme.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover opacity-70" />}

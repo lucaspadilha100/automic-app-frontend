@@ -10,6 +10,7 @@ import { ptBR } from 'date-fns/locale'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { extractApiError, publicApiClient } from '@/api/client'
+import { publicApi } from '@/api/public.api'
 
 type Tab = 'upcoming' | 'past' | 'history'
 type Appt = Record<string, unknown>
@@ -221,10 +222,23 @@ export default function CustomerAppointmentsPage() {
     enabled: !!slug,
   })
 
+  const { data: publicInfo } = useQuery({
+    queryKey: ['public', slug],
+    queryFn: () => publicApi.getInfo(slug!),
+    enabled: !!slug,
+  })
+
   const professionals = professionalsData?.data ?? []
   const photos = photosData?.data ?? []
   const products = productsData?.data ?? []
   const portfolioPhotos = photos.filter(p => p.photo_type === 'before' || p.photo_type === 'after').slice(0, 6)
+
+  const ps = publicInfo?.page_sections ?? {}
+  const sec = (key: string) => (ps as Record<string, Record<string, unknown>>)[key] ?? {}
+  const secBg = (key: string, fallback: string) => (sec(key).background_color as string | undefined) ?? fallback
+  const secVisible = (key: string) => sec(key).visible !== false
+  const secTitle = (key: string, fallback: string) => (sec(key).title as string | undefined) || fallback
+  const secLabel = (key: string, fallback: string) => (sec(key).label as string | undefined) || fallback
 
   const { data: procedureHistory, isLoading: isLoadingHistory } = useQuery({
     queryKey: ['customer-procedure-history', slug],
@@ -363,9 +377,9 @@ export default function CustomerAppointmentsPage() {
           <hr className="my-6 border-slate-200" />
 
           {/* Nossa Equipe */}
-          {professionals.length > 0 && (
+          {professionals.length > 0 && secVisible('team') && (
             <section>
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Nossa Equipe</h3>
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">{secTitle('team', 'Nossa Equipe')}</h3>
               <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
                 {professionals.map(prof => (
                   <div key={prof.id} className="flex-shrink-0 w-24 text-center">
@@ -385,9 +399,9 @@ export default function CustomerAppointmentsPage() {
           )}
 
           {/* Antes & Depois */}
-          {portfolioPhotos.length > 0 && (
+          {portfolioPhotos.length > 0 && secVisible('portfolio') && (
             <section>
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Antes &amp; Depois</h3>
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">{secTitle('portfolio', 'Antes & Depois')}</h3>
               <div className="grid grid-cols-3 gap-2">
                 {portfolioPhotos.map(photo => (
                   <button
@@ -402,9 +416,9 @@ export default function CustomerAppointmentsPage() {
           )}
 
           {/* Produtos */}
-          {products.length > 0 && (
+          {products.length > 0 && secVisible('products') && (
             <section>
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Produtos</h3>
+              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">{secTitle('products', 'Produtos')}</h3>
               <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
                 {products.map(product => (
                   <div key={product.id} className="flex-shrink-0 w-40 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
