@@ -1,11 +1,25 @@
 import { apiClient } from './client'
 import type { Payment, PaymentSummaryRow } from '@/types'
 
-// Backend POST /payments/appointments/:id/payments uses QUERY PARAMS (amount, payment_method, provider, provider_payment_id)
-// Backend POST .../refund uses QUERY PARAM (reason)
-// Backend GET /payments/summary uses QUERY PARAMS (date_from, date_to) as plain strings
+export interface PaymentDetail {
+  id: string
+  amount: number
+  status: string
+  payment_method: string
+  paid_at: string | null
+  customer_name: string | null
+  service_name: string | null
+  appointment_id: string
+  registered_by_name: string | null
+  registered_by_role: string | null
+}
 
 export const paymentsApi = {
+  listAll: async (params?: { date?: string; date_from?: string; date_to?: string; status?: string }) => {
+    const r = await apiClient.get<PaymentDetail[]>('/payments', { params })
+    return r.data
+  },
+
   list: async (appointmentId: string) => {
     const r = await apiClient.get<Payment[]>(`/payments/appointments/${appointmentId}/payments`)
     return r.data
