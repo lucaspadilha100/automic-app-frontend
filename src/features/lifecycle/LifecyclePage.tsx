@@ -2,15 +2,28 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient, extractApiError } from '@/api/client'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { LoadingState } from '@/components/feedback/LoadingState'
-import { Settings, RefreshCw, Users, Star, AlertTriangle, UserCheck, UserPlus, Clock } from 'lucide-react'
+import { Settings, RefreshCw, Users, Star, AlertTriangle, UserCheck, UserPlus, Clock, Phone, Mail } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { Link } from 'react-router-dom'
 
 type Summary = { new: number; active: number; recurring: number; inactive: number; at_risk: number; vip: number; total: number }
 type LifecycleSettings = { inactive_after_days: number; at_risk_after_days: number; recurring_min_appointments: number; vip_min_appointments: number; vip_min_total_spent: number }
-type Customer = { tenant_customer_id: string; lifecycle_status: string; last_appointment_at: string | null; next_appointment_at: string | null; total_spent: number; appointments_count: number; no_show_count: number }
+type Customer = {
+  tenant_customer_id: string
+  lifecycle_status: string
+  name: string
+  phone: string | null
+  email: string | null
+  customer_since: string | null
+  last_appointment_at: string | null
+  next_appointment_at: string | null
+  total_spent: number
+  appointments_count: number
+  no_show_count: number
+}
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: typeof Users }> = {
   new: { label: 'Novo', color: 'text-blue-600', bg: 'bg-blue-50', icon: UserPlus },
@@ -179,34 +192,58 @@ export default function LifecyclePage() {
           <div className="divide-y divide-slate-50">
             {(customers || []).map((c: Customer) => {
               const cfg = STATUS_CONFIG[c.lifecycle_status]
+              const initials = c.name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
               return (
-                <div key={c.tenant_customer_id} className="flex items-center justify-between px-6 py-3 hover:bg-slate-50 transition-colors">
+                <Link
+                  key={c.tenant_customer_id}
+                  to={`/app/customers/${c.tenant_customer_id}`}
+                  className="flex items-center justify-between px-6 py-3 hover:bg-slate-50 transition-colors"
+                >
                   <div className="flex items-center gap-3">
-                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${cfg?.bg} ${cfg?.color}`}>
-                      {cfg?.label || c.lifecycle_status}
-                    </span>
-                    <div>
-                      <p className="text-xs text-slate-500">
+                    <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center shrink-0">
+                      <span className="text-xs font-bold text-primary-700">{initials}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-slate-800 truncate">{c.name}</p>
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${cfg?.bg} ${cfg?.color}`}>
+                          {cfg?.label || c.lifecycle_status}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        {c.phone && (
+                          <span className="flex items-center gap-1 text-xs text-slate-400">
+                            <Phone className="w-3 h-3" />{c.phone}
+                          </span>
+                        )}
+                        {c.email && (
+                          <span className="flex items-center gap-1 text-xs text-slate-400 truncate">
+                            <Mail className="w-3 h-3" />{c.email}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-400 mt-0.5">
                         {c.appointments_count} agendamentos · R$ {Number(c.total_spent).toFixed(0)} gasto
+                        {c.customer_since && ` · desde ${format(new Date(c.customer_since), 'MM/yyyy', { locale: ptBR })}`}
                       </p>
-                      {c.last_appointment_at && (
-                        <p className="text-xs text-slate-400">
-                          Último: {format(new Date(c.last_appointment_at), 'dd/MM/yyyy', { locale: ptBR })}
-                        </p>
-                      )}
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right shrink-0 ml-3">
                     {c.no_show_count > 0 && (
-                      <span className="text-[11px] text-amber-600 font-medium">{c.no_show_count} no-show</span>
+                      <p className="text-[11px] text-amber-600 font-medium">{c.no_show_count} no-show</p>
+                    )}
+                    {c.last_appointment_at && (
+                      <p className="text-xs text-slate-400">
+                        Último: {format(new Date(c.last_appointment_at), 'dd/MM/yy', { locale: ptBR })}
+                      </p>
                     )}
                     {c.next_appointment_at && (
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-emerald-600 font-medium">
                         Próximo: {format(new Date(c.next_appointment_at), 'dd/MM', { locale: ptBR })}
                       </p>
                     )}
                   </div>
-                </div>
+                </Link>
               )
             })}
           </div>
