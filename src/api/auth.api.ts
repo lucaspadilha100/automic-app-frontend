@@ -1,4 +1,4 @@
-import { apiClient, INTERNAL_TOKEN_KEY } from './client'
+import { apiClient, publicApiClient, INTERNAL_TOKEN_KEY } from './client'
 import type { AuthUser, AuthTokens, LoginRequest } from '@/types'
 
 export const authApi = {
@@ -23,5 +23,17 @@ export const authApi = {
   resetPassword: async (token: string, new_password: string) => {
     const res = await apiClient.post('/auth/reset-password', { token, new_password })
     return res.data
+  },
+  signup: async (data: {
+    company_name: string
+    slug: string
+    owner_name: string
+    owner_email: string
+    owner_password: string
+    phone?: string
+    timezone?: string
+  }) => {
+    const r = await publicApiClient.post('/public/signup', data)
+    return r.data
   },
 }

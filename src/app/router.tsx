@@ -70,6 +70,7 @@ const UsersPage = lazy(() => import('@/features/users/UsersPage'))
 const TermsPage = lazy(() => import('@/features/settings/TermsPage'))
 const ProductsPage = lazy(() => import('@/features/products/ProductsPage'))
 const SuppliesPage = lazy(() => import('@/features/supplies/SuppliesPage'))
+const SignupPage = lazy(() => import('@/features/auth/SignupPage'))
 const PublicBookingPage = lazy(() => import('@/features/public-booking/PublicBookingPage'))
 const CustomerAppointmentsPage = lazy(() => import('@/features/customer-portal/CustomerAppointmentsPage'))
 const CustomerPackagesPage = lazy(() => import('@/features/customer-portal/CustomerPackagesPage'))
@@ -96,6 +97,7 @@ const router = createBrowserRouter([
   // Auth
   { path: '/login', element: <LoginPage /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
+  { path: '/signup', element: S(<SignupPage />) },
   { path: '/customer/login', element: <CustomerLoginPage /> },
   { path: '/customer/register', element: <CustomerRegisterPage /> },
 

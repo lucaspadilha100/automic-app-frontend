@@ -3,11 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { publicApi } from '@/api/public.api'
 import { customerAuthApi } from '@/api/customerAuth.api'
+import { productsApi } from '@/api/products.api'
 import { useCustomerAuthStore } from '@/stores/customerAuthStore'
 import { LoadingState } from '@/components/feedback/LoadingState'
 import {
   ChevronRight, ChevronLeft, Clock, Check, Calendar, MapPin, Phone,
-  Star, AtSign, X,
+  Star, AtSign, X, ShoppingBag,
 } from 'lucide-react'
 import { format, addDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -72,6 +73,11 @@ export default function PublicBookingPage() {
       const r = await publicApiClient.get(`/public/${slug}/reviews`)
       return r.data
     },
+    enabled: !!slug,
+  })
+  const { data: products = [] } = useQuery({
+    queryKey: ['public', slug, 'products'],
+    queryFn: () => productsApi.publicList(slug!),
     enabled: !!slug,
   })
 
@@ -289,6 +295,41 @@ export default function PublicBookingPage() {
                     </div>
                   </button>
                 ) : null
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Products */}
+        {(products as Array<{ id: string; name: string; price: number; description?: string | null; image_url?: string | null }>).length > 0 && (
+          <section>
+            <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Produtos disponíveis</h2>
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+              {(products as Array<{ id: string; name: string; price: number; description?: string | null; image_url?: string | null }>).map(product => (
+                <div key={product.id} className="flex-shrink-0 w-44 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                  {product.image_url ? (
+                    <img src={product.image_url} alt={product.name} className="w-full h-32 object-cover" />
+                  ) : (
+                    <div className="w-full h-32 flex items-center justify-center bg-slate-100">
+                      <ShoppingBag className="w-10 h-10 text-slate-300" />
+                    </div>
+                  )}
+                  <div className="p-3">
+                    <p className="text-sm font-semibold text-slate-900 leading-tight">{product.name}</p>
+                    <p className="text-sm font-bold mt-1" style={{ color: primaryColor }}>
+                      R$ {Number(product.price).toFixed(2).replace('.', ',')}
+                    </p>
+                    {product.description && (
+                      <p className="text-xs text-slate-400 mt-1 leading-relaxed line-clamp-2">{product.description}</p>
+                    )}
+                    <button
+                      className="mt-3 w-full py-2 rounded-xl text-xs font-bold text-white active:scale-[0.97] transition-transform"
+                      style={{ backgroundColor: primaryColor }}
+                      onClick={() => toast('Entre em contato para adquirir este produto')}>
+                      Quero esse
+                    </button>
+                  </div>
+                </div>
               ))}
             </div>
           </section>
