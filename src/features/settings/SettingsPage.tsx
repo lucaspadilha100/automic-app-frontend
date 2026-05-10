@@ -1,7 +1,8 @@
 
 import { NavLink, Outlet } from 'react-router-dom'
-import { Settings, CreditCard, Palette, Bell, MessageCircle, Users, FileText } from 'lucide-react'
+import { Settings, CreditCard, Palette, Bell, MessageCircle, Users, FileText, Building2 } from 'lucide-react'
 const tabs = [
+  { to: '/app/settings/company', label: 'Minha Empresa', icon: Building2 },
   { to: '/app/settings', label: 'Geral', icon: Settings, end: true },
   { to: '/app/settings/booking', label: 'Agendamento', icon: Settings },
   { to: '/app/settings/payment', label: 'Pagamento', icon: CreditCard },

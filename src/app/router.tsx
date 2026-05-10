@@ -62,6 +62,7 @@ const WebhooksPage = lazy(() => import('@/features/settings/WebhooksPage'))
 const PaymentSettingsPage = lazy(() => import('@/features/settings/PaymentSettingsPage'))
 const NotificationSettingsPage = lazy(() => import('@/features/settings/NotificationSettingsPage'))
 const WhatsAppSettingsPage = lazy(() => import('@/features/settings/WhatsAppSettingsPage'))
+const CompanyProfilePage = lazy(() => import('@/features/settings/CompanyProfilePage'))
 const LifecyclePage = lazy(() => import('@/features/lifecycle/LifecyclePage'))
 const ReportsPage = lazy(() => import('@/features/reports/ReportsPage'))
 const ReviewsPage = lazy(() => import('@/features/reviews/ReviewsPage'))
@@ -163,6 +164,7 @@ const router = createBrowserRouter([
       { path: 'whatsapp', element: S(<WhatsAppSettingsPage />) },
       { path: 'users', element: S(<UsersPage />) },
       { path: 'terms', element: S(<TermsPage />) },
+      { path: 'company', element: S(<CompanyProfilePage />) },
     ],
   },
   { path: '/app/lifecycle', element: A(<LifecyclePage />) },

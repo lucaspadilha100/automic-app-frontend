@@ -11,7 +11,7 @@ import toast from 'react-hot-toast'
 import { extractApiError } from '@/api/client'
 import {
   X, ChevronRight, ChevronLeft, Check, Clock, MapPin, Phone,
-  AtSign, Star, Calendar, ChevronDown,
+  AtSign, Star, Calendar, ChevronDown, CalendarDays, LogOut, User,
 } from 'lucide-react'
 
 type Step = 'services' | 'datetime' | 'auth' | 'confirm' | 'success'
@@ -27,7 +27,7 @@ type Photo = { id: string; photo_type: string; caption: string | null; file_url:
 export default function PremiumBookingPage() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
-  const { isAuthenticated, setAuth } = useCustomerAuthStore()
+  const { isAuthenticated, setAuth, customer, logout: customerLogout } = useCustomerAuthStore()
 
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [step, setStep] = useState<Step>('services')
@@ -169,6 +169,9 @@ export default function PremiumBookingPage() {
   }
   function toggleService(id: string) {
     setSelectedServiceIds(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id])
+  }
+  const handleCustomerLogout = () => {
+    customerLogout()
   }
 
   if (isLoading) return <LoadingState />
@@ -500,6 +503,40 @@ export default function PremiumBookingPage() {
 
       {/* ── Hero ─────────────────────────────────────────────────── */}
       <div ref={heroRef} className="relative min-h-screen flex flex-col" style={{ backgroundColor: '#0a0a0a' }}>
+        {/* Auth bar */}
+        <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-end gap-2 px-4 pt-3">
+          {isAuthenticated && customer ? (
+            <>
+              <button
+                onClick={() => navigate(`/customer/tenants/${slug}/appointments`)}
+                className="flex items-center gap-1.5 text-xs font-semibold text-white/90 hover:text-white bg-white/15 hover:bg-white/25 backdrop-blur-sm rounded-full px-3 py-1.5 transition-all">
+                <CalendarDays className="w-3.5 h-3.5" />
+                Meus agendamentos
+              </button>
+              <button
+                onClick={handleCustomerLogout}
+                title="Sair"
+                className="flex items-center gap-1 text-xs text-white/70 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full px-2.5 py-1.5 transition-all">
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => navigate('/login')}
+                className="text-[10px] text-white/50 hover:text-white/80 transition-colors px-2 py-1.5">
+                Admin
+              </button>
+              <button
+                onClick={() => setDrawerOpen(true)}
+                className="text-xs font-semibold text-white/90 hover:text-white bg-white/15 hover:bg-white/25 backdrop-blur-sm rounded-full px-3 py-1.5 transition-all flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5" />
+                Entrar
+              </button>
+            </>
+          )}
+        </div>
+
         {info.theme?.cover_image_url ? (
           <div className="absolute inset-0">
             <img src={info.theme.cover_image_url} alt="" className="w-full h-full object-cover" />

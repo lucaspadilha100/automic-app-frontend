@@ -155,13 +155,11 @@ export default function PublicBookingPage() {
     </div>
   )
 
-  if (info.theme?.theme_preset === 'premium') {
-    return (
-      <Suspense fallback={<LoadingState />}>
-        <PremiumBookingPage />
-      </Suspense>
-    )
-  }
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <PremiumBookingPage />
+    </Suspense>
+  )
 
   // ── Sticky header (used in booking steps) ────────────────────────────────
   const BookingHeader = ({ onBack }: { onBack: () => void }) => (

@@ -42,6 +42,7 @@ const baseNav = [
   ]},
   { section: 'Sistema', items: [
     { to: '/app/support', label: 'Suporte', icon: Headphones },
+    { to: '/app/settings/company', label: 'Minha Empresa', icon: Building2 },
     { to: '/app/settings', label: 'Configurações', icon: Settings },
   ]},
 ]
