@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { X, ChevronRight, ChevronLeft, Check, ShoppingBag, Package, Truck } from 'lucide-react'
 import { customerAuthApi } from '@/api/customerAuth.api'
@@ -69,19 +69,25 @@ export function ProductOrderModal({
     onError: (e: unknown) => toast.error(extractApiError(e)),
   })
 
+  useEffect(() => {
+    if (!isOpen) {
+      const t = setTimeout(() => {
+        setStep('detail')
+        setQuantity(1)
+        setDelivery('pickup')
+        setNotes('')
+        setAuthForm({ name: '', email: '', phone: '', password: '' })
+      }, 350)
+      return () => clearTimeout(t)
+    }
+  }, [isOpen])
+
   function handleDetailNext() {
     setStep(isAuthenticated ? 'confirm' : 'auth')
   }
 
   function handleClose() {
     onClose()
-    setTimeout(() => {
-      setStep('detail')
-      setQuantity(1)
-      setDelivery('pickup')
-      setNotes('')
-      setAuthForm({ name: '', email: '', phone: '', password: '' })
-    }, 350)
   }
 
   const steps: OrderStep[] = isAuthenticated

@@ -85,7 +85,7 @@ export default function PremiumBookingPage() {
     queryKey: ['public', slug, 'products'],
     queryFn: async () => {
       const { publicApiClient } = await import('@/api/client')
-      const r = await publicApiClient.get(`/${slug}/products`)
+      const r = await publicApiClient.get(`/public/${slug}/products`)
       return r.data
     },
     enabled: !!slug,
