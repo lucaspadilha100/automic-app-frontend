@@ -8,7 +8,7 @@ import { useCustomerAuthStore } from '@/stores/customerAuthStore'
 import { LoadingState } from '@/components/feedback/LoadingState'
 import {
   ChevronRight, ChevronLeft, Clock, Check, Calendar, MapPin, Phone,
-  Star, AtSign, X, ShoppingBag,
+  Star, AtSign, X, ShoppingBag, User, CalendarDays, LogOut,
 } from 'lucide-react'
 import { format, addDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -29,7 +29,12 @@ const PHOTO_TYPE_LABELS: Record<string, string> = {
 export default function PublicBookingPage() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
-  const { isAuthenticated, setAuth } = useCustomerAuthStore()
+  const { isAuthenticated, setAuth, customer, logout: customerLogout } = useCustomerAuthStore()
+
+  const handleCustomerLogout = () => {
+    customerLogout()
+    localStorage.removeItem('customer_token')
+  }
 
   const [step, setStep] = useState<Step>('home')
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([])
@@ -183,7 +188,41 @@ export default function PublicBookingPage() {
     <div className="min-h-screen bg-slate-50">
       {/* Hero */}
       <div className="relative" style={{ background: `linear-gradient(160deg, ${primaryColor} 0%, ${primaryColor}cc 100%)` }}>
-        <div className="px-5 pt-10 pb-16 text-center text-white">
+        {/* Auth bar */}
+        <div className="flex items-center justify-end gap-2 px-4 pt-3 pb-0">
+          {isAuthenticated && customer ? (
+            <>
+              <button
+                onClick={() => navigate(`/customer/tenants/${slug}/appointments`)}
+                className="flex items-center gap-1.5 text-xs font-semibold text-white/90 hover:text-white bg-white/15 hover:bg-white/25 rounded-full px-3 py-1.5 transition-all">
+                <CalendarDays className="w-3.5 h-3.5" />
+                Meus agendamentos
+              </button>
+              <button
+                onClick={handleCustomerLogout}
+                title="Sair"
+                className="flex items-center gap-1 text-xs text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full px-2.5 py-1.5 transition-all">
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setStep('auth')}
+                className="text-xs font-semibold text-white/90 hover:text-white bg-white/15 hover:bg-white/25 rounded-full px-3 py-1.5 transition-all flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5" />
+                Entrar
+              </button>
+              <button
+                onClick={() => { setAuthMode('register'); setStep('auth') }}
+                className="text-xs font-bold text-primary-700 bg-white hover:bg-white/90 rounded-full px-3 py-1.5 transition-all shadow-sm">
+                Cadastrar
+              </button>
+            </>
+          )}
+        </div>
+
+        <div className="px-5 pt-6 pb-16 text-center text-white">
           {info.theme?.logo_url && (
             <img src={info.theme.logo_url} alt="" className="w-20 h-20 rounded-2xl mx-auto mb-4 object-cover border-2 border-white/30 shadow-lg" />
           )}
