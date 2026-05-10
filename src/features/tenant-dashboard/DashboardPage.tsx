@@ -58,8 +58,8 @@ export default function DashboardPage() {
     color: STATUS_COLORS[s.status] || '#94a3b8',
   })).filter((d: { value: number }) => d.value > 0)
 
-  const customersChartData = (newCustomers || []).slice(-14).map((d: { date: string; count: number }) => ({
-    date: format(new Date(d.date), 'dd/MM'),
+  const customersChartData = (newCustomers || []).slice(-14).map((d: { year: number; month: number; count: number }) => ({
+    date: format(new Date(d.year, d.month - 1, 1), 'MM/yyyy'),
     Clientes: d.count,
   }))
 
@@ -94,7 +94,7 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-sm font-medium text-slate-800">{a.customer_name as string || 'Cliente'}</p>
                   <p className="text-xs text-slate-400">
-                    {format(new Date(a.start_datetime as string), 'HH:mm')} · {(a.appointment_services as { service_name_snapshot: string }[])?.[0]?.service_name_snapshot}
+                    {a.start_datetime ? format(new Date(a.start_datetime as string), 'HH:mm') : '--:--'} · {(a.appointment_services as { service_name_snapshot: string }[])?.[0]?.service_name_snapshot}
                   </p>
                 </div>
                 <StatusBadge status={a.status as string} />
