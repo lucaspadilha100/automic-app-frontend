@@ -640,7 +640,7 @@ export default function PremiumBookingPage() {
                 <button onClick={() => openDrawer()}
                   className="px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
                   style={{ backgroundColor: primary }}>
-                  Agendar agora <ChevronRight className="w-4 h-4" />
+                  {info.settings?.primary_button_text || 'Agendar agora'} <ChevronRight className="w-4 h-4" />
                 </button>
                 {services.length > 0 && (
                   <button
@@ -935,28 +935,33 @@ export default function PremiumBookingPage() {
 
       {/* ── Footer contact ───────────────────────────────────────── */}
       <footer className="py-8 sm:py-10 bg-zinc-950 border-t border-zinc-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-          <div className="flex items-center gap-3">
-            {info.theme?.logo_url && <img src={info.theme.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover opacity-70" />}
-            <span className="font-bold text-zinc-400">{tenantName}</span>
-          </div>
-          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-4 sm:gap-5">
-            {info.tenant?.phone && (
-              <a href={`tel:${info.tenant.phone}`} className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 text-xs transition-colors">
-                <Phone className="w-3.5 h-3.5" />{info.tenant.phone}
-              </a>
-            )}
-            {info.tenant?.instagram && (
-              <a href={`https://instagram.com/${info.tenant.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 text-xs transition-colors">
-                <AtSign className="w-3.5 h-3.5" />{info.tenant.instagram}
-              </a>
-            )}
-            {info.tenant?.address && (
-              <span className="hidden sm:flex items-center gap-1.5 text-zinc-600 text-xs">
-                <MapPin className="w-3.5 h-3.5" />{info.tenant.address}
-              </span>
-            )}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {info.settings?.footer_text && (
+            <p className="text-zinc-500 text-xs text-center mb-6 leading-relaxed max-w-lg mx-auto">{info.settings.footer_text}</p>
+          )}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            <div className="flex items-center gap-3">
+              {info.theme?.logo_url && <img src={info.theme.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover opacity-70" />}
+              <span className="font-bold text-zinc-400">{tenantName}</span>
+            </div>
+            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-4 sm:gap-5">
+              {info.tenant?.phone && (
+                <a href={`tel:${info.tenant.phone}`} className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 text-xs transition-colors">
+                  <Phone className="w-3.5 h-3.5" />{info.tenant.phone}
+                </a>
+              )}
+              {info.tenant?.instagram && (
+                <a href={`https://instagram.com/${info.tenant.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 text-xs transition-colors">
+                  <AtSign className="w-3.5 h-3.5" />{info.tenant.instagram}
+                </a>
+              )}
+              {info.tenant?.address && (
+                <span className="hidden sm:flex items-center gap-1.5 text-zinc-600 text-xs">
+                  <MapPin className="w-3.5 h-3.5" />{info.tenant.address}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </footer>
@@ -972,7 +977,7 @@ export default function PremiumBookingPage() {
           )}
           <button onClick={() => openDrawer()} style={{ backgroundColor: primary }}
             className={`py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98] ${selectedServiceIds.length > 0 ? 'flex-shrink-0 px-6' : 'flex-1 sm:max-w-sm sm:mx-auto'}`}>
-            {selectedServiceIds.length > 0 ? 'Continuar agendamento' : 'Agendar agora'}
+            {selectedServiceIds.length > 0 ? 'Continuar agendamento' : (info.settings?.primary_button_text || 'Agendar agora')}
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
