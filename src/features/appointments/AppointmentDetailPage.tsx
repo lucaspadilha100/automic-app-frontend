@@ -28,7 +28,7 @@ export default function AppointmentDetailPage() {
   const [rescheduleDate, setRescheduleDate] = useState('')
   const [showPayment, setShowPayment] = useState(false)
   const [payAmount, setPayAmount] = useState('')
-  const [payMethod, setPayMethod] = useState('pix')
+  const [payMethod, setPayMethod] = useState('pix_manual')
   const [supplyForm, setSupplyForm] = useState({ supply_id: '', quantity_used: '', notes: '' })
 
   const { data: appt, isLoading } = useQuery({
@@ -338,11 +338,11 @@ export default function AppointmentDetailPage() {
               <div>
                 <label className="label">Método</label>
                 <select className="select" value={payMethod} onChange={e => setPayMethod(e.target.value)}>
-                  <option value="pix">PIX</option>
-                  <option value="cartao_credito">Cartão crédito</option>
-                  <option value="cartao_debito">Cartão débito</option>
-                  <option value="dinheiro">Dinheiro</option>
-                  <option value="transferencia">Transferência</option>
+                  <option value="pix_manual">PIX</option>
+                  <option value="credit_card">Cartão crédito</option>
+                  <option value="debit_card">Cartão débito</option>
+                  <option value="cash">Dinheiro</option>
+                  <option value="other">Transferência / Outro</option>
                 </select>
               </div>
             </div>
