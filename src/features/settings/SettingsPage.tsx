@@ -1,6 +1,6 @@
 
 import { NavLink, Outlet } from 'react-router-dom'
-import { Settings, CreditCard, Palette, Bell, MessageCircle } from 'lucide-react'
+import { Settings, CreditCard, Palette, Bell, MessageCircle, Users, FileText } from 'lucide-react'
 const tabs = [
   { to: '/app/settings', label: 'Geral', icon: Settings, end: true },
   { to: '/app/settings/booking', label: 'Agendamento', icon: Settings },
@@ -9,6 +9,8 @@ const tabs = [
   { to: '/app/settings/notifications', label: 'Notificações', icon: Bell },
   { to: '/app/settings/webhooks', label: 'Webhooks', icon: Settings },
   { to: '/app/settings/whatsapp', label: 'WhatsApp', icon: MessageCircle },
+  { to: '/app/settings/users', label: 'Usuários', icon: Users },
+  { to: '/app/settings/terms', label: 'Termos', icon: FileText },
 ]
 export default function SettingsPage() {
   return (
