@@ -472,27 +472,67 @@ export default function PremiumBookingPage() {
       {/* ── Floating nav ─────────────────────────────────────────── */}
       <nav className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${!heroVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
         <div className="bg-white/95 backdrop-blur-md border-b border-zinc-100 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-2">
+            {/* Logo + nome */}
+            <div className="flex items-center gap-2 min-w-0">
               {info.theme?.logo_url && (
-                <img src={info.theme.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover" />
+                <img src={info.theme.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0" />
               )}
-              <span className="font-bold text-zinc-900">{tenantName}</span>
+              <span className="font-bold text-zinc-900 truncate text-sm sm:text-base">{tenantName}</span>
               {avgRating && (
-                <div className="hidden sm:flex items-center gap-1 ml-2">
+                <div className="hidden sm:flex items-center gap-1 ml-1 shrink-0">
                   <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
                   <span className="text-sm font-semibold text-zinc-600">{avgRating.toFixed(1)}</span>
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-3">
+            {/* Direita: auth + CTA */}
+            <div className="flex items-center gap-2 shrink-0">
               {info.tenant?.phone && (
-                <a href={`tel:${info.tenant.phone}`} className="hidden md:flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 transition-colors">
+                <a href={`tel:${info.tenant.phone}`} className="hidden lg:flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 transition-colors">
                   <Phone className="w-4 h-4" />{info.tenant.phone}
                 </a>
               )}
+              {isAuthenticated && customer ? (
+                <>
+                  <button
+                    onClick={() => navigate(`/customer/tenants/${slug}/appointments`)}
+                    className="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-zinc-700 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 rounded-full px-3 py-1.5 transition-all">
+                    <CalendarDays className="w-3.5 h-3.5" />
+                    <span className="hidden md:inline">Meus agendamentos</span>
+                    <span className="md:hidden">Agenda</span>
+                  </button>
+                  <button
+                    onClick={() => navigate(`/customer/tenants/${slug}/appointments`)}
+                    title="Meus agendamentos"
+                    className="sm:hidden w-8 h-8 flex items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 transition-colors">
+                    <CalendarDays className="w-4 h-4 text-zinc-600" />
+                  </button>
+                  <button
+                    onClick={handleCustomerLogout}
+                    title="Sair"
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 transition-colors">
+                    <LogOut className="w-3.5 h-3.5 text-zinc-500" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="hidden sm:block text-xs text-zinc-400 hover:text-zinc-700 transition-colors px-2 py-1">
+                    Admin
+                  </button>
+                  <button
+                    onClick={() => setDrawerOpen(true)}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-zinc-700 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 rounded-full px-3 py-1.5 transition-all">
+                    <User className="w-3.5 h-3.5" />
+                    Entrar
+                  </button>
+                </>
+              )}
+              {/* Botão agendar — oculto no mobile pois a barra inferior já faz isso */}
               <button onClick={() => openDrawer()}
-                className="px-5 py-2.5 rounded-xl text-white text-sm font-bold transition-all hover:opacity-90 active:scale-[0.98]"
+                className="hidden sm:flex px-4 py-2 rounded-xl text-white text-sm font-bold transition-all hover:opacity-90 active:scale-[0.98]"
                 style={{ backgroundColor: primary }}>
                 Agendar agora
               </button>
@@ -504,20 +544,21 @@ export default function PremiumBookingPage() {
       {/* ── Hero ─────────────────────────────────────────────────── */}
       <div ref={heroRef} className="relative min-h-screen flex flex-col" style={{ backgroundColor: '#0a0a0a' }}>
         {/* Auth bar */}
-        <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-end gap-2 px-4 pt-3">
+        <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-end gap-2 px-3 sm:px-6 pt-3">
           {isAuthenticated && customer ? (
             <>
               <button
                 onClick={() => navigate(`/customer/tenants/${slug}/appointments`)}
                 className="flex items-center gap-1.5 text-xs font-semibold text-white/90 hover:text-white bg-white/15 hover:bg-white/25 backdrop-blur-sm rounded-full px-3 py-1.5 transition-all">
                 <CalendarDays className="w-3.5 h-3.5" />
-                Meus agendamentos
+                <span className="hidden sm:inline">Meus agendamentos</span>
+                <span className="sm:hidden">Agenda</span>
               </button>
               <button
                 onClick={handleCustomerLogout}
                 title="Sair"
-                className="flex items-center gap-1 text-xs text-white/70 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full px-2.5 py-1.5 transition-all">
-                <LogOut className="w-3.5 h-3.5" />
+                className="w-8 h-8 flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full transition-all">
+                <LogOut className="w-3.5 h-3.5 text-white/70" />
               </button>
             </>
           ) : (
@@ -546,29 +587,29 @@ export default function PremiumBookingPage() {
           <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, #0a0a0a 0%, ${primary}22 100%)` }} />
         )}
 
-        <div className="relative flex-1 flex items-end pb-16 pt-24">
+        <div className="relative flex-1 flex items-end pb-12 sm:pb-16 pt-20 sm:pt-24">
           <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-2xl">
               {info.theme?.logo_url && (
-                <img src={info.theme.logo_url} alt="" className="w-16 h-16 rounded-2xl object-cover mb-8 border border-white/10 shadow-2xl" />
+                <img src={info.theme.logo_url} alt="" className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl object-cover mb-5 sm:mb-8 border border-white/10 shadow-2xl" />
               )}
-              <p className="text-xs font-bold tracking-[0.35em] uppercase mb-4" style={{ color: primary }}>
+              <p className="text-[10px] sm:text-xs font-bold tracking-[0.35em] uppercase mb-3 sm:mb-4" style={{ color: primary }}>
                 {info.tenant?.category || 'Beleza & Bem-estar'}
               </p>
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black text-white leading-[0.95] tracking-tight">
+              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white leading-[0.95] tracking-tight">
                 {tenantName}
               </h1>
               {info.tenant?.short_description && (
-                <p className="text-zinc-400 mt-5 text-base leading-relaxed max-w-md">
+                <p className="text-zinc-400 mt-4 sm:mt-5 text-sm sm:text-base leading-relaxed max-w-md">
                   {info.tenant.short_description}
                 </p>
               )}
 
               {avgRating && (
-                <div className="flex items-center gap-2 mt-6">
+                <div className="flex items-center gap-2 mt-4 sm:mt-6">
                   <div className="flex gap-0.5">
                     {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className={`w-4 h-4 ${i < Math.round(avgRating) ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-700'}`} />
+                      <Star key={i} className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${i < Math.round(avgRating) ? 'fill-yellow-400 text-yellow-400' : 'text-zinc-700'}`} />
                     ))}
                   </div>
                   <span className="text-sm font-bold text-white">{avgRating.toFixed(1)}</span>
@@ -576,35 +617,35 @@ export default function PremiumBookingPage() {
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-4 mt-5">
+              <div className="flex flex-wrap gap-3 sm:gap-4 mt-4 sm:mt-5">
                 {info.tenant?.phone && (
-                  <a href={`tel:${info.tenant.phone}`} className="flex items-center gap-1.5 text-zinc-400 hover:text-white text-sm transition-colors">
-                    <Phone className="w-4 h-4" />{info.tenant.phone}
+                  <a href={`tel:${info.tenant.phone}`} className="flex items-center gap-1.5 text-zinc-400 hover:text-white text-xs sm:text-sm transition-colors">
+                    <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4" />{info.tenant.phone}
                   </a>
                 )}
                 {info.tenant?.address && (
-                  <span className="flex items-center gap-1.5 text-zinc-400 text-sm">
-                    <MapPin className="w-4 h-4" />{info.tenant.address}
+                  <span className="flex items-center gap-1.5 text-zinc-400 text-xs sm:text-sm">
+                    <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4" />{info.tenant.address}
                   </span>
                 )}
                 {info.tenant?.instagram && (
                   <a href={`https://instagram.com/${info.tenant.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-zinc-400 hover:text-white text-sm transition-colors">
-                    <AtSign className="w-4 h-4" />{info.tenant.instagram}
+                    className="flex items-center gap-1.5 text-zinc-400 hover:text-white text-xs sm:text-sm transition-colors">
+                    <AtSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" />{info.tenant.instagram}
                   </a>
                 )}
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 mt-8">
+              <div className="flex flex-col sm:flex-row gap-3 mt-6 sm:mt-8">
                 <button onClick={() => openDrawer()}
-                  className="px-8 py-4 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
+                  className="px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
                   style={{ backgroundColor: primary }}>
                   Agendar agora <ChevronRight className="w-4 h-4" />
                 </button>
                 {services.length > 0 && (
                   <button
                     onClick={() => document.getElementById('services-section')?.scrollIntoView({ behavior: 'smooth' })}
-                    className="px-8 py-4 rounded-2xl text-sm font-medium text-white/70 border border-white/10 hover:border-white/30 hover:text-white transition-all flex items-center justify-center gap-2">
+                    className="px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl text-sm font-medium text-white/70 border border-white/10 hover:border-white/30 hover:text-white transition-all flex items-center justify-center gap-2">
                     Ver serviços <ChevronDown className="w-4 h-4" />
                   </button>
                 )}
@@ -631,7 +672,7 @@ export default function PremiumBookingPage() {
                     </button>
                   </div>
                   {hoursExpanded && (
-                    <div className="mt-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-4 grid grid-cols-4 sm:grid-cols-7 gap-2">
+                    <div className="mt-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-3 sm:p-4 grid grid-cols-4 sm:grid-cols-7 gap-1.5 sm:gap-2">
                       {(info.business_hours as BH[]).map((bh: BH) => (
                         <div key={bh.weekday} className={`text-center p-2 rounded-xl ${bh.weekday === currentDay ? 'bg-white/10' : ''}`}>
                           <p className="text-[10px] font-bold text-zinc-500 uppercase mb-1">{WEEKDAYS[bh.weekday]}</p>
@@ -893,13 +934,13 @@ export default function PremiumBookingPage() {
 
 
       {/* ── Footer contact ───────────────────────────────────────── */}
-      <footer className="py-10 bg-zinc-950 border-t border-zinc-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="py-8 sm:py-10 bg-zinc-950 border-t border-zinc-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
           <div className="flex items-center gap-3">
             {info.theme?.logo_url && <img src={info.theme.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover opacity-70" />}
             <span className="font-bold text-zinc-400">{tenantName}</span>
           </div>
-          <div className="flex items-center gap-5">
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-4 sm:gap-5">
             {info.tenant?.phone && (
               <a href={`tel:${info.tenant.phone}`} className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 text-xs transition-colors">
                 <Phone className="w-3.5 h-3.5" />{info.tenant.phone}
@@ -912,7 +953,7 @@ export default function PremiumBookingPage() {
               </a>
             )}
             {info.tenant?.address && (
-              <span className="hidden md:flex items-center gap-1.5 text-zinc-600 text-xs">
+              <span className="hidden sm:flex items-center gap-1.5 text-zinc-600 text-xs">
                 <MapPin className="w-3.5 h-3.5" />{info.tenant.address}
               </span>
             )}
