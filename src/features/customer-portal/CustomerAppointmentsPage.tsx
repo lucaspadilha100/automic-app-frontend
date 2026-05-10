@@ -436,7 +436,7 @@ export default function CustomerAppointmentsPage() {
                     )}
                     {product.price != null && (
                       <p className="text-base font-black text-slate-900 mb-3">
-                        R$ {product.price.toFixed(2).replace('.', ',')}
+                        R$ {Number(product.price).toFixed(2).replace('.', ',')}
                       </p>
                     )}
                     <button
