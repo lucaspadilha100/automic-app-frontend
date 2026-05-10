@@ -357,83 +357,103 @@ export default function CustomerAppointmentsPage() {
         )}
       </div>
 
-      {/* ── Extra sections (always visible) ── */}
-      {(professionals.length > 0 || portfolioPhotos.length > 0 || products.length > 0) && (
-        <div className="p-4 max-w-lg mx-auto pb-24 space-y-6">
-          <hr className="my-6 border-slate-200" />
-
-          {/* Nossa Equipe */}
-          {professionals.length > 0 && (
-            <section>
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Nossa Equipe</h3>
-              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
-                {professionals.map(prof => (
-                  <div key={prof.id} className="flex-shrink-0 w-24 text-center">
-                    {prof.photo_url ? (
-                      <img src={prof.photo_url} className="w-16 h-16 rounded-2xl object-cover mx-auto mb-2 border border-slate-200" />
-                    ) : (
-                      <div className="w-16 h-16 rounded-2xl bg-slate-100 mx-auto mb-2 flex items-center justify-center">
-                        <span className="text-xl font-bold text-slate-400">{prof.name.charAt(0)}</span>
-                      </div>
-                    )}
-                    <p className="text-xs font-semibold text-slate-700 leading-tight">{prof.name}</p>
-                    {prof.specialty && <p className="text-[10px] text-slate-400 mt-0.5">{prof.specialty}</p>}
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Antes & Depois */}
-          {portfolioPhotos.length > 0 && (
-            <section>
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Antes &amp; Depois</h3>
-              <div className="grid grid-cols-3 gap-2">
-                {portfolioPhotos.map(photo => (
-                  <button
-                    key={photo.id}
-                    onClick={() => setLightbox(photo.file_url)}
-                    className="aspect-square rounded-xl overflow-hidden border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                    <img src={photo.file_url} alt={photo.caption || ''} className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Produtos */}
-          {products.length > 0 && (
-            <section>
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Produtos</h3>
-              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
-                {products.map(product => (
-                  <div key={product.id} className="flex-shrink-0 w-40 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                    {product.image_url ? (
-                      <img src={product.image_url} alt={product.name} className="w-full h-28 object-cover" />
-                    ) : (
-                      <div className="w-full h-28 bg-slate-100 flex items-center justify-center">
-                        <ShoppingBag className="w-8 h-8 text-slate-300" />
-                      </div>
-                    )}
-                    <div className="p-3">
-                      <p className="text-xs font-semibold text-slate-800 leading-tight line-clamp-2 mb-1">{product.name}</p>
-                      {product.price != null && (
-                        <p className="text-xs font-bold text-primary-600 mb-2">
-                          R$ {product.price.toFixed(2).replace('.', ',')}
-                        </p>
-                      )}
-                      <button
-                        onClick={() => toast('Entre em contato para adquirir')}
-                        className="w-full py-1.5 rounded-xl bg-primary-50 text-primary-700 text-[11px] font-semibold hover:bg-primary-100 transition-colors">
-                        Quero esse
-                      </button>
+      {/* ── Nossa Equipe (full-width dark section) ── */}
+      {professionals.length > 0 && (
+        <div className="bg-zinc-950 py-12 sm:py-16 mt-2">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6">
+            <div className="mb-8 sm:mb-10">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-500 mb-2">Conheça</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-white">Nossa Equipe</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+              {professionals.map(prof => (
+                <div key={prof.id} className="bg-zinc-900 rounded-2xl sm:rounded-3xl overflow-hidden group">
+                  {prof.photo_url ? (
+                    <img src={prof.photo_url} alt={prof.name}
+                      className="w-full aspect-square sm:aspect-[3/4] object-cover object-top group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <div className="w-full aspect-square sm:aspect-[3/4] flex items-center justify-center bg-zinc-800">
+                      <span className="text-4xl sm:text-5xl font-black text-zinc-600">{prof.name.charAt(0)}</span>
                     </div>
+                  )}
+                  <div className="p-3 sm:p-4">
+                    <p className="font-bold text-white text-sm sm:text-base leading-snug">{prof.name}</p>
+                    {prof.specialty && <p className="text-xs text-zinc-500 mt-0.5">{prof.specialty}</p>}
                   </div>
-                ))}
-              </div>
-            </section>
-          )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
+      )}
+
+      {/* ── Antes & Depois ── */}
+      {portfolioPhotos.length > 0 && (
+        <div className="bg-white py-12 sm:py-16">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6">
+            <div className="mb-8">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-2">Portfólio</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-zinc-900">Antes &amp; Depois</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {portfolioPhotos.map(photo => (
+                <button
+                  key={photo.id}
+                  onClick={() => setLightbox(photo.file_url)}
+                  className="aspect-square rounded-2xl overflow-hidden bg-zinc-100 group focus:outline-none">
+                  <img src={photo.file_url} alt={photo.caption || ''}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Produtos ── */}
+      {products.length > 0 && (
+        <div className="bg-slate-50 py-12 sm:py-16 pb-28">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6">
+            <div className="mb-8">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-2">Loja</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-zinc-900">Produtos</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {products.map(product => (
+                <div key={product.id} className="bg-white rounded-2xl sm:rounded-3xl border border-slate-100 shadow-sm overflow-hidden group hover:shadow-md transition-shadow">
+                  {product.image_url ? (
+                    <img src={product.image_url} alt={product.name}
+                      className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <div className="w-full aspect-square bg-slate-100 flex items-center justify-center">
+                      <ShoppingBag className="w-10 h-10 text-slate-300" />
+                    </div>
+                  )}
+                  <div className="p-3 sm:p-4">
+                    <p className="text-sm font-bold text-slate-800 leading-snug line-clamp-2 mb-1.5">{product.name}</p>
+                    {product.description && (
+                      <p className="text-xs text-slate-400 line-clamp-2 mb-2">{product.description}</p>
+                    )}
+                    {product.price != null && (
+                      <p className="text-base font-black text-slate-900 mb-3">
+                        R$ {product.price.toFixed(2).replace('.', ',')}
+                      </p>
+                    )}
+                    <button
+                      onClick={() => toast('Entre em contato para adquirir este produto')}
+                      className="w-full py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-700 transition-colors">
+                      Quero esse
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!(professionals.length > 0 || portfolioPhotos.length > 0 || products.length > 0) && (
+        <div className="pb-24" />
       )}
 
       {/* Lightbox */}
