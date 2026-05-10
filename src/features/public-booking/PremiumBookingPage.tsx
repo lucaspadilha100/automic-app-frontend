@@ -197,11 +197,11 @@ export default function PremiumBookingPage() {
   // ── PAGE ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-white font-sans">
-      {/* ── BOOKING DRAWER (inlined — never defined as sub-component to avoid remount) */}
-      <div className={`fixed inset-0 z-50 transition-all duration-300 ${drawerOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      {/* ── BOOKING MODAL */}
+      <div className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center transition-all duration-300 ${drawerOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} />
-        <div className={`absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl transition-transform duration-500 ease-out max-h-[92vh] overflow-hidden flex flex-col lg:max-w-lg lg:left-auto lg:right-6 lg:bottom-6 lg:rounded-3xl ${drawerOpen ? 'translate-y-0' : 'translate-y-full'}`}>
-          <div className="flex justify-center pt-3 pb-1 shrink-0 lg:hidden">
+        <div className={`relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl h-[92vh] sm:h-[680px] overflow-hidden flex flex-col transition-transform duration-500 ease-out ${drawerOpen ? 'translate-y-0' : 'translate-y-full sm:translate-y-4'}`}>
+          <div className="flex justify-center pt-3 pb-1 shrink-0 sm:hidden">
             <div className="w-10 h-1 rounded-full bg-zinc-200" />
           </div>
           <div className="flex items-center justify-between px-6 py-4 shrink-0 border-b border-zinc-50">
@@ -1056,7 +1056,7 @@ export default function PremiumBookingPage() {
       {selectedProf && (
         <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center"
           onClick={() => setSelectedProf(null)}>
-          <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden max-h-[85vh] flex flex-col"
+          <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden h-[85vh] sm:h-[600px] flex flex-col"
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-4 p-5 border-b border-zinc-100">
               {selectedProf.photo_url ? (
