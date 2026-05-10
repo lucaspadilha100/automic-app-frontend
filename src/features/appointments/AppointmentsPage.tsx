@@ -14,6 +14,15 @@ import toast from 'react-hot-toast'
 import { extractApiError } from '@/api/client'
 
 const STATUS_OPTS = ['', 'scheduled', 'confirmed', 'completed', 'cancelled', 'no_show', 'rescheduled']
+const STATUS_LABELS: Record<string, string> = {
+  '': 'Todos',
+  scheduled: 'Agendado',
+  confirmed: 'Confirmado',
+  completed: 'Concluído',
+  cancelled: 'Cancelado',
+  no_show: 'Não compareceu',
+  rescheduled: 'Reagendado',
+}
 
 export default function AppointmentsPage() {
   const qc = useQueryClient()
@@ -66,7 +75,7 @@ export default function AppointmentsPage() {
           {STATUS_OPTS.map(s => (
             <button key={s} onClick={() => setStatus(s)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${status === s ? 'bg-primary-400 text-slate-900 border-primary-400' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}>
-              {s || 'Todos'}
+              {STATUS_LABELS[s]}
             </button>
           ))}
         </div>
@@ -90,7 +99,7 @@ export default function AppointmentsPage() {
                     <p className="font-semibold text-slate-800">{format(new Date(a.start_datetime as string), 'dd/MM/yyyy', { locale: ptBR })}</p>
                     <p className="text-xs text-slate-400">{format(new Date(a.start_datetime as string), 'HH:mm')} – {format(new Date(a.end_datetime as string), 'HH:mm')}</p>
                   </td>
-                  <td className="td font-medium">{a.customer_name as string || '—'}</td>
+                  <td className="td font-medium">{(a.customer_account as {name:string})?.name || '—'}</td>
                   <td className="td text-sm text-slate-500 hidden sm:table-cell">{(a.appointment_services as {service_name_snapshot:string}[])?.[0]?.service_name_snapshot || '—'}</td>
                   <td className="td text-sm text-slate-500 hidden sm:table-cell">{(a.professional as {name:string})?.name || '—'}</td>
                   <td className="td"><StatusBadge status={a.status as string} /></td>
