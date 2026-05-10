@@ -4,7 +4,8 @@ import { customerPortalApi } from '@/api/customerPortal.api'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { LoadingState } from '@/components/feedback/LoadingState'
 import { EmptyState } from '@/components/feedback/EmptyState'
-import { Calendar, ChevronLeft, XCircle, RefreshCw, ClipboardList, Image, Star, User, Scissors, CreditCard, ShoppingBag, X } from 'lucide-react'
+import { Calendar, ChevronLeft, XCircle, RefreshCw, ClipboardList, Image, Star, User, Scissors, CreditCard, ShoppingBag, X, Clock, MapPin } from 'lucide-react'
+import { ProductOrderModal, type OrderableProduct } from '@/features/public-booking/ProductOrderModal'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useState } from 'react'
@@ -50,9 +51,11 @@ function AppCard({
   const canReschedule = ['scheduled', 'confirmed'].includes(appt.status as string)
   const isCompleted = appt.status === 'completed'
 
-  const services = (appt.appointment_services as Array<{ service_name_snapshot: string; price_snapshot?: number }>) || []
-  const professionalName = (appt.professional as { name: string } | null)?.name
-  const totalPrice = services.reduce((sum, s) => sum + (s.price_snapshot || 0), 0)
+  const apptServices = (appt.appointment_services as Array<{ service_name_snapshot: string; service_price_snapshot?: number }>) || []
+  const professional = appt.professional as { name: string; photo_url?: string } | null
+  const unit = appt.unit as { name: string; address?: string } | null
+  const totalPrice = Number(appt.total_price) || 0
+  const startDt = new Date(appt.start_datetime as string)
 
   const { data: existingReview } = useQuery({
     queryKey: ['appointment-review', appt.id],
@@ -73,76 +76,111 @@ function AppCard({
 
   return (
     <>
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-slate-900 leading-tight">
-              {services.length > 0
-                ? services.map(s => s.service_name_snapshot).join(' + ')
-                : 'Agendamento'}
-            </p>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {format(new Date(appt.start_datetime as string), "EEE, dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-            </p>
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        {/* Date strip */}
+        <div className="flex items-stretch">
+          {/* Left date block */}
+          <div className="flex flex-col items-center justify-center px-4 py-4 min-w-[72px] shrink-0"
+            style={{ backgroundColor: '#f8fafc', borderRight: '1px solid #f1f5f9' }}>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              {format(startDt, 'EEE', { locale: ptBR })}
+            </span>
+            <span className="text-3xl font-black text-slate-900 leading-tight">
+              {format(startDt, 'dd')}
+            </span>
+            <span className="text-[10px] font-semibold uppercase text-slate-400">
+              {format(startDt, 'MMM', { locale: ptBR })}
+            </span>
+            <span className="text-[10px] text-slate-400 mt-0.5">
+              {format(startDt, 'yyyy')}
+            </span>
           </div>
-          <StatusBadge status={appt.status as string} />
+
+          {/* Content */}
+          <div className="flex-1 min-w-0 p-4">
+            <div className="flex items-start justify-between gap-2 mb-3">
+              <p className="font-bold text-slate-900 leading-snug text-sm">
+                {apptServices.length > 0
+                  ? apptServices.map(s => s.service_name_snapshot).join(' + ')
+                  : 'Agendamento'}
+              </p>
+              <StatusBadge status={appt.status as string} />
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <Clock className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                <span>{format(startDt, "HH:mm")}
+                  {appt.total_duration_minutes ? ` · ${appt.total_duration_minutes}min` : ''}
+                </span>
+              </div>
+
+              {professional?.name && (
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <Scissors className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                  <span>{professional.name}</span>
+                </div>
+              )}
+
+              {unit && (
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <MapPin className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                  <span className="truncate">
+                    {unit.name}{unit.address ? ` · ${unit.address}` : ''}
+                  </span>
+                </div>
+              )}
+
+              {totalPrice > 0 && (
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <CreditCard className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                  <span className="font-semibold text-slate-700">
+                    R$ {totalPrice.toFixed(2).replace('.', ',')}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Existing review badge */}
+            {isCompleted && existingReview && (
+              <div className="flex items-center gap-1.5 mt-3 bg-yellow-50 rounded-xl px-3 py-2">
+                <div className="flex gap-0.5">
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <Star key={i} className={`w-3.5 h-3.5 ${i <= existingReview.rating ? 'fill-yellow-400 text-yellow-400' : 'text-slate-200'}`} />
+                  ))}
+                </div>
+                <span className="text-xs text-slate-500 ml-1">{existingReview.comment || 'Avaliado'}</span>
+              </div>
+            )}
+
+            {/* Actions */}
+            {(canCancel || canReschedule || (isCompleted && !existingReview)) && (
+              <div className="flex gap-2 pt-3 mt-3 border-t border-slate-100">
+                {canReschedule && (
+                  <button
+                    className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 flex items-center justify-center gap-1.5 transition-colors"
+                    onClick={() => onReschedule(appt.id as string)}>
+                    <RefreshCw className="w-3.5 h-3.5" /> Remarcar
+                  </button>
+                )}
+                {canCancel && (
+                  <button
+                    className="flex-1 py-2 px-3 rounded-xl border border-red-200 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center justify-center gap-1.5 transition-colors"
+                    onClick={() => onCancel(appt.id as string)}>
+                    <XCircle className="w-3.5 h-3.5" /> Cancelar
+                  </button>
+                )}
+                {isCompleted && !existingReview && (
+                  <button
+                    className="flex-1 py-2 px-3 rounded-xl border border-yellow-200 text-xs font-semibold text-yellow-700 hover:bg-yellow-50 flex items-center justify-center gap-1.5 transition-colors"
+                    onClick={() => setShowReview(true)}>
+                    <Star className="w-3.5 h-3.5" /> Avaliar
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-
-        {/* Details row */}
-        <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3">
-          {professionalName && (
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
-              <Scissors className="w-3.5 h-3.5 text-slate-400" />
-              <span>{professionalName}</span>
-            </div>
-          )}
-          {totalPrice > 0 && (
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
-              <CreditCard className="w-3.5 h-3.5 text-slate-400" />
-              <span className="font-semibold text-slate-700">R$ {totalPrice.toFixed(2).replace('.', ',')}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Existing review badge */}
-        {isCompleted && existingReview && (
-          <div className="flex items-center gap-1.5 mb-3 bg-yellow-50 rounded-xl px-3 py-2">
-            <div className="flex gap-0.5">
-              {[1, 2, 3, 4, 5].map(i => (
-                <Star key={i} className={`w-3.5 h-3.5 ${i <= existingReview.rating ? 'fill-yellow-400 text-yellow-400' : 'text-slate-200'}`} />
-              ))}
-            </div>
-            <span className="text-xs text-slate-500 ml-1">{existingReview.comment || 'Avaliado'}</span>
-          </div>
-        )}
-
-        {/* Actions */}
-        {(canCancel || canReschedule || (isCompleted && !existingReview)) && (
-          <div className="flex gap-2 pt-3 border-t border-slate-100">
-            {canReschedule && (
-              <button
-                className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 flex items-center justify-center gap-1.5 transition-colors"
-                onClick={() => onReschedule(appt.id as string)}>
-                <RefreshCw className="w-3.5 h-3.5" /> Remarcar
-              </button>
-            )}
-            {canCancel && (
-              <button
-                className="flex-1 py-2 px-3 rounded-xl border border-red-200 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center justify-center gap-1.5 transition-colors"
-                onClick={() => onCancel(appt.id as string)}>
-                <XCircle className="w-3.5 h-3.5" /> Cancelar
-              </button>
-            )}
-            {isCompleted && !existingReview && (
-              <button
-                className="flex-1 py-2 px-3 rounded-xl border border-yellow-200 text-xs font-semibold text-yellow-700 hover:bg-yellow-50 flex items-center justify-center gap-1.5 transition-colors"
-                onClick={() => setShowReview(true)}>
-                <Star className="w-3.5 h-3.5" /> Avaliar
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Review modal */}
@@ -198,6 +236,7 @@ export default function CustomerAppointmentsPage() {
   const [newDateTime, setNewDateTime] = useState('')
 
   const [lightbox, setLightbox] = useState<string | null>(null)
+  const [productOrder, setProductOrder] = useState<OrderableProduct | null>(null)
 
   const { data: appointments, isLoading } = useQuery({
     queryKey: ['customer-appointments', slug],
@@ -371,84 +410,112 @@ export default function CustomerAppointmentsPage() {
         )}
       </div>
 
-      {/* ── Extra sections (always visible) ── */}
-      {(professionals.length > 0 || portfolioPhotos.length > 0 || products.length > 0) && (
-        <div className="p-4 max-w-lg mx-auto pb-24 space-y-6">
-          <hr className="my-6 border-slate-200" />
-
-          {/* Nossa Equipe */}
-          {professionals.length > 0 && secVisible('team') && (
-            <section>
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">{secTitle('team', 'Nossa Equipe')}</h3>
-              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
-                {professionals.map(prof => (
-                  <div key={prof.id} className="flex-shrink-0 w-24 text-center">
-                    {prof.photo_url ? (
-                      <img src={prof.photo_url} className="w-16 h-16 rounded-2xl object-cover mx-auto mb-2 border border-slate-200" />
-                    ) : (
-                      <div className="w-16 h-16 rounded-2xl bg-slate-100 mx-auto mb-2 flex items-center justify-center">
-                        <span className="text-xl font-bold text-slate-400">{prof.name.charAt(0)}</span>
-                      </div>
-                    )}
-                    <p className="text-xs font-semibold text-slate-700 leading-tight">{prof.name}</p>
-                    {prof.specialty && <p className="text-[10px] text-slate-400 mt-0.5">{prof.specialty}</p>}
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Antes & Depois */}
-          {portfolioPhotos.length > 0 && secVisible('portfolio') && (
-            <section>
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">{secTitle('portfolio', 'Antes & Depois')}</h3>
-              <div className="grid grid-cols-3 gap-2">
-                {portfolioPhotos.map(photo => (
-                  <button
-                    key={photo.id}
-                    onClick={() => setLightbox(photo.file_url)}
-                    className="aspect-square rounded-xl overflow-hidden border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                    <img src={photo.file_url} alt={photo.caption || ''} className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Produtos */}
-          {products.length > 0 && secVisible('products') && (
-            <section>
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">{secTitle('products', 'Produtos')}</h3>
-              <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
-                {products.map(product => (
-                  <div key={product.id} className="flex-shrink-0 w-40 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                    {product.image_url ? (
-                      <img src={product.image_url} alt={product.name} className="w-full h-28 object-cover" />
-                    ) : (
-                      <div className="w-full h-28 bg-slate-100 flex items-center justify-center">
-                        <ShoppingBag className="w-8 h-8 text-slate-300" />
-                      </div>
-                    )}
-                    <div className="p-3">
-                      <p className="text-xs font-semibold text-slate-800 leading-tight line-clamp-2 mb-1">{product.name}</p>
-                      {product.price != null && (
-                        <p className="text-xs font-bold text-primary-600 mb-2">
-                          R$ {product.price.toFixed(2).replace('.', ',')}
-                        </p>
-                      )}
-                      <button
-                        onClick={() => toast('Entre em contato para adquirir')}
-                        className="w-full py-1.5 rounded-xl bg-primary-50 text-primary-700 text-[11px] font-semibold hover:bg-primary-100 transition-colors">
-                        Quero esse
-                      </button>
+      {/* ── Produtos ── */}
+      {products.length > 0 && secVisible('products') && (
+        <div className="py-12 sm:py-16 mt-2" style={{ backgroundColor: secBg('products', '#f8fafc') }}>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6">
+            <div className="mb-8">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-2">{secLabel('products', 'Loja')}</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-zinc-900">{secTitle('products', 'Produtos')}</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {products.map(product => (
+                <div key={product.id} className="bg-white rounded-2xl sm:rounded-3xl border border-slate-100 shadow-sm overflow-hidden group hover:shadow-md transition-shadow">
+                  {product.image_url ? (
+                    <img src={product.image_url} alt={product.name}
+                      className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <div className="w-full aspect-square bg-slate-100 flex items-center justify-center">
+                      <ShoppingBag className="w-10 h-10 text-slate-300" />
                     </div>
+                  )}
+                  <div className="p-3 sm:p-4">
+                    <p className="text-sm font-bold text-slate-800 leading-snug line-clamp-2 mb-1.5">{product.name}</p>
+                    {product.description && (
+                      <p className="text-xs text-slate-400 line-clamp-2 mb-2">{product.description}</p>
+                    )}
+                    {product.price != null && (
+                      <p className="text-base font-black text-slate-900 mb-3">
+                        R$ {Number(product.price).toFixed(2).replace('.', ',')}
+                      </p>
+                    )}
+                    <button
+                      onClick={() => setProductOrder({ id: product.id, name: product.name, price: Number(product.price), description: product.description, image_url: product.image_url })}
+                      className="w-full py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-700 transition-colors">
+                      Reservar
+                    </button>
                   </div>
-                ))}
-              </div>
-            </section>
-          )}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
+
+      {/* ── Nossa Equipe (full-width dark section) ── */}
+      {professionals.length > 0 && secVisible('team') && (
+        <div className="py-12 sm:py-16" style={{ backgroundColor: secBg('team', '#09090b') }}>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6">
+            <div className="mb-8 sm:mb-10">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-500 mb-2">{secLabel('team', 'Conheça')}</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-white">{secTitle('team', 'Nossa Equipe')}</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+              {professionals.map(prof => (
+                <div key={prof.id} className="bg-zinc-900 rounded-2xl sm:rounded-3xl overflow-hidden group">
+                  {prof.photo_url ? (
+                    <img src={prof.photo_url} alt={prof.name}
+                      className="w-full aspect-square sm:aspect-[3/4] object-cover object-top group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <div className="w-full aspect-square sm:aspect-[3/4] flex items-center justify-center bg-zinc-800">
+                      <span className="text-4xl sm:text-5xl font-black text-zinc-600">{prof.name.charAt(0)}</span>
+                    </div>
+                  )}
+                  <div className="p-3 sm:p-4">
+                    <p className="font-bold text-white text-sm sm:text-base leading-snug">{prof.name}</p>
+                    {prof.specialty && <p className="text-xs text-zinc-500 mt-0.5">{prof.specialty}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Antes & Depois ── */}
+      {portfolioPhotos.length > 0 && secVisible('portfolio') && (
+        <div className="py-12 sm:py-16 pb-28" style={{ backgroundColor: secBg('portfolio', '#ffffff') }}>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6">
+            <div className="mb-8">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-2">{secLabel('portfolio', 'Portfólio')}</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-zinc-900">{secTitle('portfolio', 'Antes & Depois')}</h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {portfolioPhotos.map(photo => (
+                <button
+                  key={photo.id}
+                  onClick={() => setLightbox(photo.file_url)}
+                  className="aspect-square rounded-2xl overflow-hidden bg-zinc-100 group focus:outline-none">
+                  <img src={photo.file_url} alt={photo.caption || ''}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!(professionals.length > 0 || portfolioPhotos.length > 0 || products.length > 0) && (
+        <div className="pb-24" />
+      )}
+
+      {/* Product order modal — user already logged in, auth step is skipped */}
+      <ProductOrderModal
+        product={productOrder}
+        slug={slug!}
+        isOpen={!!productOrder}
+        onClose={() => setProductOrder(null)}
+      />
 
       {/* Lightbox */}
       {lightbox && (

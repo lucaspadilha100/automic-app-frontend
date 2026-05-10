@@ -21,4 +21,12 @@ export const customerPortalApi = {
     const r = await customerApiClient.post(`/customer/tenants/${slug}/appointments/${appointmentId}/review`, data)
     return r.data
   },
+  createProductOrder: async (slug: string, data: {
+    items: { product_id: string; quantity: number }[]
+    delivery_type: 'pickup' | 'delivery'
+    notes?: string
+  }) => {
+    const r = await customerApiClient.post(`/customer/tenants/${slug}/product-orders`, data)
+    return r.data as { id: string; status: string; total: number }
+  },
 }

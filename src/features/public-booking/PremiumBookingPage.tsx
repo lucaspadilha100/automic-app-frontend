@@ -13,14 +13,16 @@ import {
   X, ChevronRight, ChevronLeft, Check, Clock, MapPin, Phone,
   AtSign, Star, Calendar, ChevronDown, CalendarDays, LogOut, User,
 } from 'lucide-react'
+import { ProductOrderModal, type OrderableProduct } from './ProductOrderModal'
 
 type Step = 'services' | 'datetime' | 'auth' | 'confirm' | 'success'
+type Product = { id: string; name: string; price: number; description?: string; image_url?: string }
 // Backend uses Python weekday: 0=Mon, 1=Tue, ..., 5=Sat, 6=Sun
 const WEEKDAYS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
 
 type BH = { weekday: number; open_time?: string; close_time?: string; is_closed: boolean }
 type Service = { id: string; name: string; description?: string; duration_minutes: number; price: number; category_id?: string }
-type Prof = { id: string; name: string; bio?: string; photo_url?: string }
+type Prof = { id: string; name: string; bio?: string; photo_url?: string; service_ids?: string[] }
 type Review = { id: string; rating: number; comment: string | null; reviewer_name: string | null; created_at: string }
 type Photo = { id: string; photo_type: string; caption: string | null; file_url: string | null; created_at: string }
 
@@ -42,6 +44,8 @@ export default function PremiumBookingPage() {
   const [heroVisible, setHeroVisible] = useState(true)
   const [profIdx, setProfIdx] = useState(0)
   const [hoursExpanded, setHoursExpanded] = useState(false)
+  const [selectedProf, setSelectedProf] = useState<Prof | null>(null)
+  const [productOrder, setProductOrder] = useState<OrderableProduct | null>(null)
   const heroRef = useRef<HTMLDivElement>(null)
 
   const { data: info, isLoading } = useQuery({
@@ -73,6 +77,15 @@ export default function PremiumBookingPage() {
     queryFn: async () => {
       const { publicApiClient } = await import('@/api/client')
       const r = await publicApiClient.get(`/public/${slug}/reviews`)
+      return r.data
+    },
+    enabled: !!slug,
+  })
+  const { data: products = [] } = useQuery<Product[]>({
+    queryKey: ['public', slug, 'products'],
+    queryFn: async () => {
+      const { publicApiClient } = await import('@/api/client')
+      const r = await publicApiClient.get(`/public/${slug}/products`)
       return r.data
     },
     enabled: !!slug,
@@ -195,11 +208,11 @@ export default function PremiumBookingPage() {
   // ── PAGE ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-white font-sans">
-      {/* ── BOOKING DRAWER (inlined — never defined as sub-component to avoid remount) */}
-      <div className={`fixed inset-0 z-50 transition-all duration-300 ${drawerOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      {/* ── BOOKING MODAL */}
+      <div className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center transition-all duration-300 ${drawerOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDrawerOpen(false)} />
-        <div className={`absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl transition-transform duration-500 ease-out max-h-[92vh] overflow-hidden flex flex-col lg:max-w-lg lg:left-auto lg:right-6 lg:bottom-6 lg:rounded-3xl ${drawerOpen ? 'translate-y-0' : 'translate-y-full'}`}>
-          <div className="flex justify-center pt-3 pb-1 shrink-0 lg:hidden">
+        <div className={`relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl h-[92vh] sm:h-[680px] overflow-hidden flex flex-col transition-transform duration-500 ease-out ${drawerOpen ? 'translate-y-0' : 'translate-y-full sm:translate-y-4'}`}>
+          <div className="flex justify-center pt-3 pb-1 shrink-0 sm:hidden">
             <div className="w-10 h-1 rounded-full bg-zinc-200" />
           </div>
           <div className="flex items-center justify-between px-6 py-4 shrink-0 border-b border-zinc-50">
@@ -653,7 +666,7 @@ export default function PremiumBookingPage() {
                 <button onClick={() => openDrawer()}
                   className="px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
                   style={{ backgroundColor: primary }}>
-                  Agendar agora <ChevronRight className="w-4 h-4" />
+                  {info.settings?.primary_button_text || 'Agendar agora'} <ChevronRight className="w-4 h-4" />
                 </button>
                 {services.length > 0 && (
                   <button
@@ -744,6 +757,93 @@ export default function PremiumBookingPage() {
         </div>
       )}
 
+      {/* ── Team / Professionals ─────────────────────────────────── */}
+      {profsArr.length > 0 && secVisible('team') && (
+        <div className="py-20 lg:py-28" style={{ backgroundColor: secBg('team', '#09090b') }}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="mb-12">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] mb-3" style={{ color: primary }}>{secLabel('team', 'Conheça')}</p>
+              <h2 className="text-3xl sm:text-4xl font-black text-white">{secTitle('team', 'Nossa equipe')}</h2>
+              <p className="text-sm text-zinc-500 mt-2">{secSubtitle('team') || 'Toque em um profissional para ver os serviços'}</p>
+            </div>
+
+            {/* Mobile: carousel */}
+            <div className="lg:hidden">
+              <div className="overflow-hidden rounded-3xl">
+                <div className="flex transition-transform duration-700 ease-in-out"
+                  style={{ transform: `translateX(-${profIdx * 100}%)` }}>
+                  {profsArr.map(prof => (
+                    <div key={prof.id} className="w-full flex-shrink-0">
+                      <button className="w-full bg-zinc-900 rounded-3xl overflow-hidden text-left group"
+                        onClick={() => setSelectedProf(prof)}>
+                        {prof.photo_url ? (
+                          <img src={prof.photo_url} alt={prof.name} className="w-full h-72 object-cover object-top group-hover:scale-105 transition-transform duration-500" />
+                        ) : (
+                          <div className="w-full h-72 flex items-center justify-center text-5xl font-black"
+                            style={{ backgroundColor: primary + '20', color: primary }}>
+                            {prof.name.charAt(0)}
+                          </div>
+                        )}
+                        <div className="p-6 flex items-center justify-between">
+                          <div>
+                            <h3 className="font-bold text-white text-xl">{prof.name}</h3>
+                            {prof.bio && <p className="text-sm text-zinc-400 mt-1 leading-relaxed line-clamp-2">{prof.bio}</p>}
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-zinc-600 shrink-0 ml-3" />
+                        </div>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between mt-5">
+                <button onClick={() => setProfIdx(i => (i - 1 + profsArr.length) % profsArr.length)}
+                  className="w-10 h-10 rounded-full border border-zinc-700 flex items-center justify-center text-zinc-400 hover:border-zinc-500 hover:text-white transition-colors">
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <div className="flex gap-2">
+                  {profsArr.map((_, i) => (
+                    <button key={i} onClick={() => setProfIdx(i)}
+                      className="w-2 h-2 rounded-full transition-all"
+                      style={{ backgroundColor: i === profIdx ? primary : '#52525b' }} />
+                  ))}
+                </div>
+                <button onClick={() => setProfIdx(i => (i + 1) % profsArr.length)}
+                  className="w-10 h-10 rounded-full border border-zinc-700 flex items-center justify-center text-zinc-400 hover:border-zinc-500 hover:text-white transition-colors">
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Desktop: grid */}
+            <div className="hidden lg:grid grid-cols-3 gap-6">
+              {profsArr.map((prof, i) => (
+                <button key={prof.id} onClick={() => setSelectedProf(prof)}
+                  className={`bg-zinc-900 rounded-3xl overflow-hidden transition-all duration-500 text-left group ${i === profIdx % profsArr.length ? 'ring-2 scale-[1.02]' : 'opacity-80 hover:opacity-100 hover:scale-[1.01]'}`}
+                  style={i === profIdx % profsArr.length ? { ringColor: primary } : {}}
+                  onMouseEnter={() => setProfIdx(i)}>
+                  {prof.photo_url ? (
+                    <img src={prof.photo_url} alt={prof.name} className="w-full h-64 object-cover object-top group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <div className="w-full h-64 flex items-center justify-center text-5xl font-black"
+                      style={{ backgroundColor: primary + '20', color: primary }}>
+                      {prof.name.charAt(0)}
+                    </div>
+                  )}
+                  <div className="p-6 flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-white text-lg">{prof.name}</h3>
+                      {prof.bio && <p className="text-sm text-zinc-400 mt-1 leading-relaxed line-clamp-2">{prof.bio}</p>}
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-zinc-600 group-hover:text-zinc-400 transition-colors shrink-0 ml-3" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Services ─────────────────────────────────────────────── */}
       {services.length > 0 && secVisible('services') && (
         <div id="services-section" className="py-20 lg:py-28" style={{ backgroundColor: secBg('services', '#ffffff') }}>
@@ -786,79 +886,37 @@ export default function PremiumBookingPage() {
         </div>
       )}
 
-      {/* ── Team / Professionals ─────────────────────────────────── */}
-      {profsArr.length > 0 && secVisible('team') && (
-        <div className="py-20 lg:py-28" style={{ backgroundColor: secBg('team', '#09090b') }}>
+      {/* ── Produtos / Ecommerce ──────────────────────────────────── */}
+      {products.length > 0 && secVisible('products') && (
+        <div className="py-20 lg:py-28" style={{ backgroundColor: secBg('products', '#f4f4f5') }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mb-12">
-              <p className="text-xs font-bold uppercase tracking-[0.3em] mb-3" style={{ color: primary }}>{secLabel('team', 'Conheça')}</p>
-              <h2 className="text-3xl sm:text-4xl font-black text-white">{secTitle('team', 'Nossa equipe')}</h2>
-              {secSubtitle('team') && <p className="text-zinc-400 mt-2 text-sm">{secSubtitle('team')}</p>}
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-zinc-400 mb-3">{secLabel('products', 'Loja')}</p>
+              <h2 className="text-3xl sm:text-4xl font-black text-zinc-900">{secTitle('products', 'Produtos')}</h2>
             </div>
-
-            {/* Mobile: carousel */}
-            <div className="lg:hidden">
-              <div className="overflow-hidden rounded-3xl">
-                <div className="flex transition-transform duration-700 ease-in-out"
-                  style={{ transform: `translateX(-${profIdx * 100}%)` }}>
-                  {profsArr.map(prof => (
-                    <div key={prof.id} className="w-full flex-shrink-0">
-                      <div className="bg-zinc-900 rounded-3xl overflow-hidden">
-                        {prof.photo_url ? (
-                          <img src={prof.photo_url} alt={prof.name} className="w-full h-72 object-cover object-top" />
-                        ) : (
-                          <div className="w-full h-72 flex items-center justify-center text-5xl font-black"
-                            style={{ backgroundColor: primary + '20', color: primary }}>
-                            {prof.name.charAt(0)}
-                          </div>
-                        )}
-                        <div className="p-6">
-                          <h3 className="font-bold text-white text-xl">{prof.name}</h3>
-                          {prof.bio && <p className="text-sm text-zinc-400 mt-2 leading-relaxed">{prof.bio}</p>}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {/* Carousel controls */}
-              <div className="flex items-center justify-between mt-5">
-                <button onClick={() => setProfIdx(i => (i - 1 + profsArr.length) % profsArr.length)}
-                  className="w-10 h-10 rounded-full border border-zinc-700 flex items-center justify-center text-zinc-400 hover:border-zinc-500 hover:text-white transition-colors">
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <div className="flex gap-2">
-                  {profsArr.map((_, i) => (
-                    <button key={i} onClick={() => setProfIdx(i)}
-                      className="w-2 h-2 rounded-full transition-all"
-                      style={{ backgroundColor: i === profIdx ? primary : '#52525b' }} />
-                  ))}
-                </div>
-                <button onClick={() => setProfIdx(i => (i + 1) % profsArr.length)}
-                  className="w-10 h-10 rounded-full border border-zinc-700 flex items-center justify-center text-zinc-400 hover:border-zinc-500 hover:text-white transition-colors">
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Desktop: grid */}
-            <div className="hidden lg:grid grid-cols-3 gap-6">
-              {profsArr.map((prof, i) => (
-                <div key={prof.id}
-                  className={`bg-zinc-900 rounded-3xl overflow-hidden transition-all duration-500 cursor-pointer ${i === profIdx % profsArr.length ? 'ring-2 scale-[1.02]' : 'opacity-80 hover:opacity-100'}`}
-                  style={i === profIdx % profsArr.length ? { ringColor: primary } : {}}
-                  onMouseEnter={() => setProfIdx(i)}>
-                  {prof.photo_url ? (
-                    <img src={prof.photo_url} alt={prof.name} className="w-full h-64 object-cover object-top" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+              {products.map(product => (
+                <div key={product.id} className="bg-white rounded-3xl border border-zinc-100 shadow-sm overflow-hidden group hover:shadow-md transition-all duration-300">
+                  {product.image_url ? (
+                    <img src={product.image_url} alt={product.name}
+                      className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-500" />
                   ) : (
-                    <div className="w-full h-64 flex items-center justify-center text-5xl font-black"
-                      style={{ backgroundColor: primary + '20', color: primary }}>
-                      {prof.name.charAt(0)}
+                    <div className="w-full aspect-square bg-zinc-100 flex items-center justify-center">
+                      <Star className="w-10 h-10 text-zinc-300" />
                     </div>
                   )}
-                  <div className="p-6">
-                    <h3 className="font-bold text-white text-lg">{prof.name}</h3>
-                    {prof.bio && <p className="text-sm text-zinc-400 mt-2 leading-relaxed line-clamp-3">{prof.bio}</p>}
+                  <div className="p-4">
+                    <p className="font-bold text-zinc-900 text-sm leading-snug line-clamp-2 mb-1">{product.name}</p>
+                    {product.description && (
+                      <p className="text-xs text-zinc-400 line-clamp-2 mb-3">{product.description}</p>
+                    )}
+                    <p className="text-lg font-black text-zinc-900 mb-3">R$ {Number(product.price).toFixed(2)}</p>
+                    <button
+                      onClick={() => setProductOrder({ id: product.id, name: product.name, price: Number(product.price), description: product.description, image_url: product.image_url })}
+                      className="w-full py-2.5 rounded-xl text-white text-xs font-bold transition-all hover:opacity-90"
+                      style={{ backgroundColor: primary }}>
+                      Reservar
+                    </button>
                   </div>
                 </div>
               ))}
@@ -949,28 +1007,33 @@ export default function PremiumBookingPage() {
 
       {/* ── Footer contact ───────────────────────────────────────── */}
       <footer className="py-8 sm:py-10 border-t border-zinc-900" style={{ backgroundColor: secBg('footer', '#09090b') }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-          <div className="flex items-center gap-3">
-            {info.theme?.logo_url && <img src={info.theme.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover opacity-70" />}
-            <span className="font-bold text-zinc-400">{tenantName}</span>
-          </div>
-          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-4 sm:gap-5">
-            {info.tenant?.phone && (
-              <a href={`tel:${info.tenant.phone}`} className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 text-xs transition-colors">
-                <Phone className="w-3.5 h-3.5" />{info.tenant.phone}
-              </a>
-            )}
-            {info.tenant?.instagram && (
-              <a href={`https://instagram.com/${info.tenant.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 text-xs transition-colors">
-                <AtSign className="w-3.5 h-3.5" />{info.tenant.instagram}
-              </a>
-            )}
-            {info.tenant?.address && (
-              <span className="hidden sm:flex items-center gap-1.5 text-zinc-600 text-xs">
-                <MapPin className="w-3.5 h-3.5" />{info.tenant.address}
-              </span>
-            )}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {info.settings?.footer_text && (
+            <p className="text-zinc-500 text-xs text-center mb-6 leading-relaxed max-w-lg mx-auto">{info.settings.footer_text}</p>
+          )}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+            <div className="flex items-center gap-3">
+              {info.theme?.logo_url && <img src={info.theme.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover opacity-70" />}
+              <span className="font-bold text-zinc-400">{tenantName}</span>
+            </div>
+            <div className="flex flex-wrap items-center justify-center sm:justify-end gap-4 sm:gap-5">
+              {info.tenant?.phone && (
+                <a href={`tel:${info.tenant.phone}`} className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 text-xs transition-colors">
+                  <Phone className="w-3.5 h-3.5" />{info.tenant.phone}
+                </a>
+              )}
+              {info.tenant?.instagram && (
+                <a href={`https://instagram.com/${info.tenant.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 text-xs transition-colors">
+                  <AtSign className="w-3.5 h-3.5" />{info.tenant.instagram}
+                </a>
+              )}
+              {info.tenant?.address && (
+                <span className="hidden sm:flex items-center gap-1.5 text-zinc-600 text-xs">
+                  <MapPin className="w-3.5 h-3.5" />{info.tenant.address}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </footer>
@@ -986,13 +1049,22 @@ export default function PremiumBookingPage() {
           )}
           <button onClick={() => openDrawer()} style={{ backgroundColor: primary }}
             className={`py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98] ${selectedServiceIds.length > 0 ? 'flex-shrink-0 px-6' : 'flex-1 sm:max-w-sm sm:mx-auto'}`}>
-            {selectedServiceIds.length > 0 ? 'Continuar agendamento' : 'Agendar agora'}
+            {selectedServiceIds.length > 0 ? 'Continuar agendamento' : (info.settings?.primary_button_text || 'Agendar agora')}
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       <div className="h-20" />
+
+      {/* ── Product order modal ──────────────────────────────────── */}
+      <ProductOrderModal
+        product={productOrder}
+        slug={slug!}
+        isOpen={!!productOrder}
+        onClose={() => setProductOrder(null)}
+        primaryColor={primary}
+      />
 
       {/* ── Lightbox ─────────────────────────────────────────────── */}
       {lightbox && (
@@ -1001,6 +1073,73 @@ export default function PremiumBookingPage() {
             <X className="w-5 h-5 text-white" />
           </button>
           <img src={lightbox} className="max-w-full max-h-full rounded-2xl object-contain" onClick={e => e.stopPropagation()} />
+        </div>
+      )}
+
+      {/* ── Professional services modal ───────────────────────────── */}
+      {selectedProf && (
+        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center"
+          onClick={() => setSelectedProf(null)}>
+          <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden h-[85vh] sm:h-[600px] flex flex-col"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-4 p-5 border-b border-zinc-100">
+              {selectedProf.photo_url ? (
+                <img src={selectedProf.photo_url} alt={selectedProf.name}
+                  className="w-14 h-14 rounded-2xl object-cover object-top shrink-0" />
+              ) : (
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-black shrink-0"
+                  style={{ backgroundColor: primary + '20', color: primary }}>
+                  {selectedProf.name.charAt(0)}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <h3 className="font-black text-zinc-900 text-lg leading-tight">{selectedProf.name}</h3>
+                {selectedProf.bio && <p className="text-xs text-zinc-400 mt-0.5 line-clamp-2">{selectedProf.bio}</p>}
+              </div>
+              <button onClick={() => setSelectedProf(null)}
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 transition-colors shrink-0">
+                <X className="w-4 h-4 text-zinc-600" />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-5">
+              {(() => {
+                const profServices = services.filter(s =>
+                  selectedProf.service_ids?.includes(s.id)
+                )
+                if (!profServices.length) return (
+                  <p className="text-sm text-zinc-400 text-center py-6">Nenhum serviço vinculado</p>
+                )
+                return (
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-3">Serviços</p>
+                    {profServices.map(svc => (
+                      <button key={svc.id}
+                        onClick={() => { openDrawer(svc.id); setSelectedProf(null) }}
+                        className="w-full flex items-center justify-between p-4 rounded-2xl border border-zinc-100 hover:border-zinc-200 bg-white hover:bg-zinc-50 transition-all group text-left">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-zinc-900 text-sm">{svc.name}</p>
+                          <p className="text-xs text-zinc-400 mt-0.5 flex items-center gap-1">
+                            <Clock className="w-3 h-3" />{svc.duration_minutes}min
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-sm font-bold text-zinc-900">R$ {Number(svc.price).toFixed(2)}</span>
+                          <ChevronRight className="w-4 h-4 text-zinc-300 group-hover:text-zinc-600 transition-colors" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )
+              })()}
+            </div>
+            <div className="p-5 border-t border-zinc-100">
+              <button onClick={() => { openDrawer(); setSelectedProf(null) }}
+                className="w-full py-4 rounded-2xl text-white text-sm font-bold"
+                style={{ backgroundColor: primary }}>
+                {info.settings?.primary_button_text || 'Agendar agora'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
