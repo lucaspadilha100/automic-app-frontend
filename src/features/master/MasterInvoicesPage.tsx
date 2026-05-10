@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { SkeletonTable } from '@/components/feedback/LoadingState'
 import { EmptyState } from '@/components/feedback/EmptyState'
-import { FileText, Play, CheckCircle } from 'lucide-react'
+import { FileText, Play, CheckCircle, Zap, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { extractApiError } from '@/api/client'
 import { useState } from 'react'
@@ -30,6 +30,18 @@ export default function MasterInvoicesPage() {
   const markPaidMut = useMutation({
     mutationFn: ({ id }: { id: string }) => masterApi.markInvoicePaid(id, { payment_method: 'manual', payment_provider: 'manual' }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['master','invoices'] }); toast.success('Fatura marcada como paga') },
+    onError: (e) => toast.error(extractApiError(e)),
+  })
+
+  const chargeMut = useMutation({
+    mutationFn: ({ id }: { id: string }) => masterApi.chargeInvoice(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['master','invoices'] }); toast.success('Cobrança enviada') },
+    onError: (e) => toast.error(extractApiError(e)),
+  })
+
+  const cancelMut = useMutation({
+    mutationFn: ({ id }: { id: string }) => masterApi.cancelInvoice(id, 'Cancelado pelo admin'),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['master','invoices'] }); toast.success('Fatura cancelada') },
     onError: (e) => toast.error(extractApiError(e)),
   })
 
@@ -76,13 +88,27 @@ export default function MasterInvoicesPage() {
                   <td className="td text-xs text-slate-400">{new Date(inv.due_date as string).toLocaleDateString('pt-BR')}</td>
                   <td className="td"><StatusBadge status={inv.status as string} /></td>
                   <td className="td">
-                    {inv.status === 'pending' || inv.status === 'overdue' ? (
-                      <button className="btn-ghost btn-sm gap-1"
-                        onClick={() => markPaidMut.mutate({ id: inv.id as string })}
-                        disabled={markPaidMut.isPending}>
-                        <CheckCircle className="w-3.5 h-3.5" /> Marcar paga
-                      </button>
-                    ) : null}
+                    <div className="flex gap-1">
+                      {(inv.status === 'pending' || inv.status === 'overdue') && (
+                        <>
+                          <button className="btn-ghost btn-sm gap-1" title="Cobrar automaticamente"
+                            onClick={() => chargeMut.mutate({ id: inv.id as string })}
+                            disabled={chargeMut.isPending}>
+                            <Zap className="w-3.5 h-3.5" /> Cobrar
+                          </button>
+                          <button className="btn-ghost btn-sm gap-1" title="Marcar como paga manualmente"
+                            onClick={() => markPaidMut.mutate({ id: inv.id as string })}
+                            disabled={markPaidMut.isPending}>
+                            <CheckCircle className="w-3.5 h-3.5" /> Paga
+                          </button>
+                          <button className="btn-ghost btn-sm gap-1 text-red-500" title="Cancelar fatura"
+                            onClick={() => cancelMut.mutate({ id: inv.id as string })}
+                            disabled={cancelMut.isPending}>
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

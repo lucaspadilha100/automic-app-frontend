@@ -7,7 +7,7 @@ import { LoadingState } from '@/components/feedback/LoadingState'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { extractApiError } from '@/api/client'
-import { CreditCard, Settings, BarChart3, FileText, Shield } from 'lucide-react'
+import { CreditCard, Settings, BarChart3, FileText, Shield, Tag } from 'lucide-react'
 
 export default function TenantDetailPage() {
   const { tenantId } = useParams<{ tenantId: string }>()
@@ -24,6 +24,8 @@ export default function TenantDetailPage() {
   const { data: plans } = useQuery({ queryKey: ['master','plans'], queryFn: () => masterApi.listPlans() })
 
   const [tab, setTab] = useState<'overview'|'invoices'|'payment'|'features'|'limits'>('overview')
+  const [customPriceOpen, setCustomPriceOpen] = useState(false)
+  const [customPriceForm, setCustomPriceForm] = useState({ custom_price_monthly: '', custom_price_reason: '', billing_notes: '' })
   const [manualPaymentOpen, setManualPaymentOpen] = useState(false)
   const [paymentForm, setPaymentForm] = useState({ amount: '', payment_method: 'pix', payment_reference: '', notes: '' })
 
@@ -42,6 +44,12 @@ export default function TenantDetailPage() {
   const statusMut = useMutation({
     mutationFn: (status: string) => masterApi.updateTenantStatus(tenantId!, status),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['master','tenant', tenantId] }); toast.success('Status atualizado') },
+    onError: (e) => toast.error(extractApiError(e)),
+  })
+
+  const customPriceMut = useMutation({
+    mutationFn: (data: Record<string, unknown>) => masterApi.updateSubscription(tenantId!, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['master','tenant', tenantId] }); toast.success('Preço customizado salvo'); setCustomPriceOpen(false) },
     onError: (e) => toast.error(extractApiError(e)),
   })
 
@@ -136,10 +144,13 @@ export default function TenantDetailPage() {
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <Link to={`/master/invoices?tenant_id=${tenantId}`} className="btn-secondary flex-1 justify-center">
               <FileText className="w-4 h-4" /> Ver faturas
             </Link>
+            <button className="btn-secondary flex-1" onClick={() => { setCustomPriceForm({ custom_price_monthly: tenant.subscription?.custom_price_monthly || '', custom_price_reason: tenant.subscription?.custom_price_reason || '', billing_notes: tenant.subscription?.billing_notes || '' }); setCustomPriceOpen(true) }}>
+              <Tag className="w-4 h-4" /> Preço customizado
+            </button>
             <button className="btn-primary flex-1" onClick={() => setManualPaymentOpen(true)}>
               <CreditCard className="w-4 h-4" /> Registrar pagamento manual
             </button>
@@ -165,6 +176,48 @@ export default function TenantDetailPage() {
           </div>
           <BarChart3 className="w-5 h-5 text-slate-400" />
         </Link>
+      )}
+
+      {/* Custom price modal */}
+      {customPriceOpen && (
+        <div className="modal-overlay" onClick={() => setCustomPriceOpen(false)}>
+          <div className="modal-box max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="font-bold text-slate-900">Preço customizado</h3>
+              <button onClick={() => setCustomPriceOpen(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="label">Valor mensal customizado (R$) — deixe em branco para usar o plano</label>
+                <input className="input" type="number" step="0.01" placeholder="Ex: 197.00"
+                  value={customPriceForm.custom_price_monthly}
+                  onChange={e => setCustomPriceForm(f => ({ ...f, custom_price_monthly: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Motivo do preço customizado</label>
+                <input className="input" placeholder="Ex: Cliente fundador, desconto especial..."
+                  value={customPriceForm.custom_price_reason}
+                  onChange={e => setCustomPriceForm(f => ({ ...f, custom_price_reason: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Notas de cobrança (internas)</label>
+                <textarea className="input" rows={2} placeholder="Observações internas sobre cobrança..."
+                  value={customPriceForm.billing_notes}
+                  onChange={e => setCustomPriceForm(f => ({ ...f, billing_notes: e.target.value }))} />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setCustomPriceOpen(false)}>Cancelar</button>
+              <button className="btn-primary" onClick={() => customPriceMut.mutate({
+                custom_price_monthly: customPriceForm.custom_price_monthly ? Number(customPriceForm.custom_price_monthly) : null,
+                custom_price_reason: customPriceForm.custom_price_reason || null,
+                billing_notes: customPriceForm.billing_notes || null,
+              })} disabled={customPriceMut.isPending}>
+                {customPriceMut.isPending ? 'Salvando...' : 'Salvar'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Manual payment modal */}

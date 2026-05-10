@@ -5,6 +5,7 @@ export const usersApi = {
   update: async (id: string, data: { name?: string; phone?: string; is_active?: boolean }) =>
     (await apiClient.put(`/users/${id}`, data)).data,
   deactivate: async (id: string) => (await apiClient.put(`/users/${id}`, { is_active: false })).data,
+  delete: async (id: string) => (await apiClient.delete(`/users/${id}`)).data,
 
   // Invites
   listInvites: async () => (await apiClient.get('/users/invites')).data,
