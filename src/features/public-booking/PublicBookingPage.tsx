@@ -208,6 +208,12 @@ export default function PublicBookingPage() {
           ) : (
             <>
               <button
+                onClick={() => navigate('/login')}
+                title="Acesso do estabelecimento"
+                className="text-[10px] text-white/50 hover:text-white/80 transition-colors px-2 py-1.5">
+                Admin
+              </button>
+              <button
                 onClick={() => setStep('auth')}
                 className="text-xs font-semibold text-white/90 hover:text-white bg-white/15 hover:bg-white/25 rounded-full px-3 py-1.5 transition-all flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5" />

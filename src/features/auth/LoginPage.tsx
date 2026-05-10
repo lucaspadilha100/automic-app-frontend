@@ -20,6 +20,7 @@ export default function LoginPage() {
       localStorage.setItem(INTERNAL_TOKEN_KEY, data.access_token)
       setUser(data.user)
       if (data.user?.role === 'super_admin') navigate('/master/dashboard')
+      else if (data.user?.role === 'professional') navigate('/app/my-schedule')
       else navigate('/app/dashboard')
     } catch (err) {
       setError(extractApiError(err))
