@@ -4,7 +4,7 @@ import { customerPortalApi } from '@/api/customerPortal.api'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { LoadingState } from '@/components/feedback/LoadingState'
 import { EmptyState } from '@/components/feedback/EmptyState'
-import { Calendar, ChevronLeft, XCircle, RefreshCw, ClipboardList, Image, Star, User, Scissors, CreditCard, ShoppingBag, X } from 'lucide-react'
+import { Calendar, ChevronLeft, XCircle, RefreshCw, ClipboardList, Image, Star, User, Scissors, CreditCard, ShoppingBag, X, Clock, MapPin } from 'lucide-react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useState } from 'react'
@@ -49,9 +49,11 @@ function AppCard({
   const canReschedule = ['scheduled', 'confirmed'].includes(appt.status as string)
   const isCompleted = appt.status === 'completed'
 
-  const services = (appt.appointment_services as Array<{ service_name_snapshot: string; price_snapshot?: number }>) || []
-  const professionalName = (appt.professional as { name: string } | null)?.name
-  const totalPrice = services.reduce((sum, s) => sum + (s.price_snapshot || 0), 0)
+  const apptServices = (appt.appointment_services as Array<{ service_name_snapshot: string; service_price_snapshot?: number }>) || []
+  const professional = appt.professional as { name: string; photo_url?: string } | null
+  const unit = appt.unit as { name: string; address?: string } | null
+  const totalPrice = Number(appt.total_price) || 0
+  const startDt = new Date(appt.start_datetime as string)
 
   const { data: existingReview } = useQuery({
     queryKey: ['appointment-review', appt.id],
@@ -72,76 +74,111 @@ function AppCard({
 
   return (
     <>
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-slate-900 leading-tight">
-              {services.length > 0
-                ? services.map(s => s.service_name_snapshot).join(' + ')
-                : 'Agendamento'}
-            </p>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {format(new Date(appt.start_datetime as string), "EEE, dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-            </p>
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        {/* Date strip */}
+        <div className="flex items-stretch">
+          {/* Left date block */}
+          <div className="flex flex-col items-center justify-center px-4 py-4 min-w-[72px] shrink-0"
+            style={{ backgroundColor: '#f8fafc', borderRight: '1px solid #f1f5f9' }}>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              {format(startDt, 'EEE', { locale: ptBR })}
+            </span>
+            <span className="text-3xl font-black text-slate-900 leading-tight">
+              {format(startDt, 'dd')}
+            </span>
+            <span className="text-[10px] font-semibold uppercase text-slate-400">
+              {format(startDt, 'MMM', { locale: ptBR })}
+            </span>
+            <span className="text-[10px] text-slate-400 mt-0.5">
+              {format(startDt, 'yyyy')}
+            </span>
           </div>
-          <StatusBadge status={appt.status as string} />
+
+          {/* Content */}
+          <div className="flex-1 min-w-0 p-4">
+            <div className="flex items-start justify-between gap-2 mb-3">
+              <p className="font-bold text-slate-900 leading-snug text-sm">
+                {apptServices.length > 0
+                  ? apptServices.map(s => s.service_name_snapshot).join(' + ')
+                  : 'Agendamento'}
+              </p>
+              <StatusBadge status={appt.status as string} />
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <Clock className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                <span>{format(startDt, "HH:mm")}
+                  {appt.total_duration_minutes ? ` · ${appt.total_duration_minutes}min` : ''}
+                </span>
+              </div>
+
+              {professional?.name && (
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <Scissors className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                  <span>{professional.name}</span>
+                </div>
+              )}
+
+              {unit && (
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <MapPin className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                  <span className="truncate">
+                    {unit.name}{unit.address ? ` · ${unit.address}` : ''}
+                  </span>
+                </div>
+              )}
+
+              {totalPrice > 0 && (
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <CreditCard className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                  <span className="font-semibold text-slate-700">
+                    R$ {totalPrice.toFixed(2).replace('.', ',')}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Existing review badge */}
+            {isCompleted && existingReview && (
+              <div className="flex items-center gap-1.5 mt-3 bg-yellow-50 rounded-xl px-3 py-2">
+                <div className="flex gap-0.5">
+                  {[1, 2, 3, 4, 5].map(i => (
+                    <Star key={i} className={`w-3.5 h-3.5 ${i <= existingReview.rating ? 'fill-yellow-400 text-yellow-400' : 'text-slate-200'}`} />
+                  ))}
+                </div>
+                <span className="text-xs text-slate-500 ml-1">{existingReview.comment || 'Avaliado'}</span>
+              </div>
+            )}
+
+            {/* Actions */}
+            {(canCancel || canReschedule || (isCompleted && !existingReview)) && (
+              <div className="flex gap-2 pt-3 mt-3 border-t border-slate-100">
+                {canReschedule && (
+                  <button
+                    className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 flex items-center justify-center gap-1.5 transition-colors"
+                    onClick={() => onReschedule(appt.id as string)}>
+                    <RefreshCw className="w-3.5 h-3.5" /> Remarcar
+                  </button>
+                )}
+                {canCancel && (
+                  <button
+                    className="flex-1 py-2 px-3 rounded-xl border border-red-200 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center justify-center gap-1.5 transition-colors"
+                    onClick={() => onCancel(appt.id as string)}>
+                    <XCircle className="w-3.5 h-3.5" /> Cancelar
+                  </button>
+                )}
+                {isCompleted && !existingReview && (
+                  <button
+                    className="flex-1 py-2 px-3 rounded-xl border border-yellow-200 text-xs font-semibold text-yellow-700 hover:bg-yellow-50 flex items-center justify-center gap-1.5 transition-colors"
+                    onClick={() => setShowReview(true)}>
+                    <Star className="w-3.5 h-3.5" /> Avaliar
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-
-        {/* Details row */}
-        <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3">
-          {professionalName && (
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
-              <Scissors className="w-3.5 h-3.5 text-slate-400" />
-              <span>{professionalName}</span>
-            </div>
-          )}
-          {totalPrice > 0 && (
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
-              <CreditCard className="w-3.5 h-3.5 text-slate-400" />
-              <span className="font-semibold text-slate-700">R$ {totalPrice.toFixed(2).replace('.', ',')}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Existing review badge */}
-        {isCompleted && existingReview && (
-          <div className="flex items-center gap-1.5 mb-3 bg-yellow-50 rounded-xl px-3 py-2">
-            <div className="flex gap-0.5">
-              {[1, 2, 3, 4, 5].map(i => (
-                <Star key={i} className={`w-3.5 h-3.5 ${i <= existingReview.rating ? 'fill-yellow-400 text-yellow-400' : 'text-slate-200'}`} />
-              ))}
-            </div>
-            <span className="text-xs text-slate-500 ml-1">{existingReview.comment || 'Avaliado'}</span>
-          </div>
-        )}
-
-        {/* Actions */}
-        {(canCancel || canReschedule || (isCompleted && !existingReview)) && (
-          <div className="flex gap-2 pt-3 border-t border-slate-100">
-            {canReschedule && (
-              <button
-                className="flex-1 py-2 px-3 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 flex items-center justify-center gap-1.5 transition-colors"
-                onClick={() => onReschedule(appt.id as string)}>
-                <RefreshCw className="w-3.5 h-3.5" /> Remarcar
-              </button>
-            )}
-            {canCancel && (
-              <button
-                className="flex-1 py-2 px-3 rounded-xl border border-red-200 text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center justify-center gap-1.5 transition-colors"
-                onClick={() => onCancel(appt.id as string)}>
-                <XCircle className="w-3.5 h-3.5" /> Cancelar
-              </button>
-            )}
-            {isCompleted && !existingReview && (
-              <button
-                className="flex-1 py-2 px-3 rounded-xl border border-yellow-200 text-xs font-semibold text-yellow-700 hover:bg-yellow-50 flex items-center justify-center gap-1.5 transition-colors"
-                onClick={() => setShowReview(true)}>
-                <Star className="w-3.5 h-3.5" /> Avaliar
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Review modal */}
