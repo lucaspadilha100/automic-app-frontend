@@ -5,6 +5,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { LoadingState } from '@/components/feedback/LoadingState'
 import { EmptyState } from '@/components/feedback/EmptyState'
 import { Calendar, ChevronLeft, XCircle, RefreshCw, ClipboardList, Image, Star, User, Scissors, CreditCard, ShoppingBag, X, Clock, MapPin } from 'lucide-react'
+import { ProductOrderModal, type OrderableProduct } from '@/features/public-booking/ProductOrderModal'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useState } from 'react'
@@ -234,6 +235,7 @@ export default function CustomerAppointmentsPage() {
   const [newDateTime, setNewDateTime] = useState('')
 
   const [lightbox, setLightbox] = useState<string | null>(null)
+  const [productOrder, setProductOrder] = useState<OrderableProduct | null>(null)
 
   const { data: appointments, isLoading } = useQuery({
     queryKey: ['customer-appointments', slug],
@@ -424,9 +426,9 @@ export default function CustomerAppointmentsPage() {
                       </p>
                     )}
                     <button
-                      onClick={() => toast('Entre em contato para adquirir este produto')}
+                      onClick={() => setProductOrder({ id: product.id, name: product.name, price: Number(product.price), description: product.description, image_url: product.image_url })}
                       className="w-full py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-700 transition-colors">
-                      Quero esse
+                      Reservar
                     </button>
                   </div>
                 </div>
@@ -492,6 +494,14 @@ export default function CustomerAppointmentsPage() {
       {!(professionals.length > 0 || portfolioPhotos.length > 0 || products.length > 0) && (
         <div className="pb-24" />
       )}
+
+      {/* Product order modal — user already logged in, auth step is skipped */}
+      <ProductOrderModal
+        product={productOrder}
+        slug={slug!}
+        isOpen={!!productOrder}
+        onClose={() => setProductOrder(null)}
+      />
 
       {/* Lightbox */}
       {lightbox && (

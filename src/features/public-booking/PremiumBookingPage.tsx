@@ -13,6 +13,7 @@ import {
   X, ChevronRight, ChevronLeft, Check, Clock, MapPin, Phone,
   AtSign, Star, Calendar, ChevronDown, CalendarDays, LogOut, User,
 } from 'lucide-react'
+import { ProductOrderModal, type OrderableProduct } from './ProductOrderModal'
 
 type Step = 'services' | 'datetime' | 'auth' | 'confirm' | 'success'
 type Product = { id: string; name: string; price: number; description?: string; image_url?: string }
@@ -44,6 +45,7 @@ export default function PremiumBookingPage() {
   const [profIdx, setProfIdx] = useState(0)
   const [hoursExpanded, setHoursExpanded] = useState(false)
   const [selectedProf, setSelectedProf] = useState<Prof | null>(null)
+  const [productOrder, setProductOrder] = useState<OrderableProduct | null>(null)
   const heroRef = useRef<HTMLDivElement>(null)
 
   const { data: info, isLoading } = useQuery({
@@ -897,10 +899,10 @@ export default function PremiumBookingPage() {
                     )}
                     <p className="text-lg font-black text-zinc-900 mb-3">R$ {Number(product.price).toFixed(2)}</p>
                     <button
-                      onClick={() => openDrawer()}
+                      onClick={() => setProductOrder({ id: product.id, name: product.name, price: Number(product.price), description: product.description, image_url: product.image_url })}
                       className="w-full py-2.5 rounded-xl text-white text-xs font-bold transition-all hover:opacity-90"
                       style={{ backgroundColor: primary }}>
-                      Solicitar
+                      Reservar
                     </button>
                   </div>
                 </div>
@@ -1041,6 +1043,15 @@ export default function PremiumBookingPage() {
       </div>
 
       <div className="h-20" />
+
+      {/* ── Product order modal ──────────────────────────────────── */}
+      <ProductOrderModal
+        product={productOrder}
+        slug={slug!}
+        isOpen={!!productOrder}
+        onClose={() => setProductOrder(null)}
+        primaryColor={primary}
+      />
 
       {/* ── Lightbox ─────────────────────────────────────────────── */}
       {lightbox && (
