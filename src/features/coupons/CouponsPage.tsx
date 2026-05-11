@@ -17,6 +17,7 @@ type Coupon = {
   starts_at: string | null
   ends_at: string | null
   usage_limit: number | null
+  times_used: number
   is_active: boolean
 }
 
@@ -213,7 +214,7 @@ export default function CouponsPage() {
                   </div>
                   <p className="text-xs text-slate-500">
                     {c.discount_type === 'percentage' ? `${c.discount_value}% de desconto` : `R$ ${Number(c.discount_value).toFixed(2)} de desconto`}
-                    {c.usage_limit && ` · Limite: ${c.usage_limit} usos`}
+                    {c.usage_limit ? ` · ${c.times_used}/${c.usage_limit} usos` : ` · ${c.times_used} uso${c.times_used !== 1 ? 's' : ''}`}
                     {c.ends_at && ` · Expira: ${format(new Date(c.ends_at), 'dd/MM/yyyy', { locale: ptBR })}`}
                   </p>
                 </div>

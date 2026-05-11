@@ -307,6 +307,7 @@ export interface AppointmentCreate {
   start_datetime: string
   customer_notes?: string
   source?: string
+  coupon_code?: string
 }
 
 // PlanCreate

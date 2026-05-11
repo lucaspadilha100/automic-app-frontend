@@ -83,4 +83,15 @@ export const publicApi = {
     const r = await customerApiClient.get<Appointment[]>(`/public/${slug}/my-appointments`)
     return r.data
   },
+
+  validateCoupon: async (slug: string, code: string, amount: number): Promise<{
+    code: string
+    discount_type: string
+    discount_value: number
+    discount_amount: number
+    final_amount: number
+  }> => {
+    const r = await publicApiClient.get(`/public/${slug}/coupons/validate`, { params: { code, amount } })
+    return r.data
+  },
 }

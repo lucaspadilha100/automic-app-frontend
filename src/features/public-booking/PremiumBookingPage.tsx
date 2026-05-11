@@ -35,9 +35,13 @@ export default function PremiumBookingPage() {
   const [step, setStep] = useState<Step>('services')
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([])
   const [selectedProfId, setSelectedProfId] = useState('')
+  const [assignedProfId, setAssignedProfId] = useState('')
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedSlot, setSelectedSlot] = useState('')
   const [notes, setNotes] = useState('')
+  const [couponCode, setCouponCode] = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount_amount: number; final_amount: number } | null>(null)
+  const [couponLoading, setCouponLoading] = useState(false)
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
   const [authForm, setAuthForm] = useState({ name: '', email: '', phone: '', password: '' })
   const [lightbox, setLightbox] = useState<string | null>(null)
@@ -96,6 +100,8 @@ export default function PremiumBookingPage() {
   const selectedServices = services.filter(s => selectedServiceIds.includes(s.id))
   const totalDuration = selectedServices.reduce((a, s) => a + (s.duration_minutes || 0), 0)
   const totalPrice = selectedServices.reduce((a, s) => a + (s.price || 0), 0)
+  const finalPrice = appliedCoupon ? appliedCoupon.final_amount : totalPrice
+  const effectiveProfId = selectedProfId || assignedProfId
 
   const dates = Array.from({ length: 30 }, (_, i) => {
     const d = addDays(new Date(), i + 1)
@@ -120,14 +126,30 @@ export default function PremiumBookingPage() {
 
   const bookMut = useMutation({
     mutationFn: () => publicApi.createAppointment(slug!, {
-      professional_id: selectedProfId || profsArr?.[0]?.id,
+      professional_id: effectiveProfId || undefined,
       service_ids: selectedServiceIds,
       start_datetime: selectedSlot,
       customer_notes: notes,
+      coupon_code: appliedCoupon?.code,
     }),
     onSuccess: () => setStep('success'),
     onError: (e: unknown) => toast.error(extractApiError(e)),
   })
+
+  async function handleApplyCoupon() {
+    if (!couponCode.trim()) return
+    setCouponLoading(true)
+    try {
+      const result = await publicApi.validateCoupon(slug!, couponCode.trim(), totalPrice)
+      setAppliedCoupon(result)
+      toast.success(`Cupom aplicado! Desconto de R$ ${result.discount_amount.toFixed(2)}`)
+    } catch (e: unknown) {
+      setAppliedCoupon(null)
+      toast.error(extractApiError(e))
+    } finally {
+      setCouponLoading(false)
+    }
+  }
 
   const authMut = useMutation({
     mutationFn: async () => {
@@ -328,17 +350,34 @@ export default function PremiumBookingPage() {
                       </div>
                     ) : (
                       <div className="grid grid-cols-4 gap-2">
-                        {(slots as { start_datetime: string }[])?.map(slot => {
-                          const time = format(new Date(slot.start_datetime), 'HH:mm')
-                          const sel = selectedSlot === slot.start_datetime
-                          return (
-                            <button key={slot.start_datetime} onClick={() => setSelectedSlot(slot.start_datetime)}
-                              className={`py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${sel ? 'text-white border-transparent' : 'border-zinc-100 text-zinc-700 hover:border-zinc-300'}`}
-                              style={sel ? { backgroundColor: primary } : {}}>
-                              {time}
-                            </button>
-                          )
-                        })}
+                        {(() => {
+                          type Slot = { start_datetime: string; professional_id?: string }
+                          const rawSlots = (slots as Slot[]) || []
+                          // Deduplicate by formatted time — keep all slots per time for random pick
+                          const slotMap = new Map<string, Slot[]>()
+                          for (const s of rawSlots) {
+                            const t = format(new Date(s.start_datetime), 'HH:mm')
+                            if (!slotMap.has(t)) slotMap.set(t, [])
+                            slotMap.get(t)!.push(s)
+                          }
+                          const uniqueSlots = Array.from(slotMap.values()).map(g => g[0])
+                          return uniqueSlots.map(slot => {
+                            const time = format(new Date(slot.start_datetime), 'HH:mm')
+                            const sel = selectedSlot === slot.start_datetime
+                            return (
+                              <button key={time} onClick={() => {
+                                const group = slotMap.get(time) || [slot]
+                                const picked = group[Math.floor(Math.random() * group.length)]
+                                setSelectedSlot(picked.start_datetime)
+                                setAssignedProfId(picked.professional_id || '')
+                              }}
+                                className={`py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${sel ? 'text-white border-transparent' : 'border-zinc-100 text-zinc-700 hover:border-zinc-300'}`}
+                                style={sel ? { backgroundColor: primary } : {}}>
+                                {time}
+                              </button>
+                            )
+                          })
+                        })()}
                       </div>
                     )}
                   </div>
@@ -399,9 +438,18 @@ export default function PremiumBookingPage() {
                       <p className="text-sm font-bold text-zinc-900">R$ {Number(svc.price).toFixed(2)}</p>
                     </div>
                   ))}
-                  <div className="border-t border-zinc-200 pt-3 flex justify-between">
+                  {appliedCoupon && (
+                    <div className="flex justify-between items-center text-sm text-emerald-600 border-t border-zinc-200 pt-3">
+                      <span>Desconto ({appliedCoupon.code})</span>
+                      <span>- R$ {appliedCoupon.discount_amount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className={`${appliedCoupon ? '' : 'border-t border-zinc-200 pt-3'} flex justify-between`}>
                     <p className="text-sm font-bold text-zinc-900">Total</p>
-                    <p className="text-base font-black" style={{ color: primary }}>R$ {totalPrice.toFixed(2)}</p>
+                    <div className="text-right">
+                      {appliedCoupon && <p className="text-xs text-zinc-400 line-through">R$ {totalPrice.toFixed(2)}</p>}
+                      <p className="text-base font-black" style={{ color: primary }}>R$ {finalPrice.toFixed(2)}</p>
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-2 text-sm text-zinc-600">
@@ -412,6 +460,31 @@ export default function PremiumBookingPage() {
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-zinc-400" />
                     <span>{format(new Date(selectedSlot), 'HH:mm')} · {totalDuration}min</span>
+                  </div>
+                  {effectiveProfId && profsArr.find(p => p.id === effectiveProfId) && (
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-zinc-400" />
+                      <span>{profsArr.find(p => p.id === effectiveProfId)!.name}</span>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5 block">Cupom de desconto</label>
+                  <div className="flex gap-2">
+                    <input
+                      className="flex-1 border-2 border-zinc-100 rounded-xl px-4 py-3 text-sm text-zinc-900 focus:border-zinc-900 focus:outline-none transition-colors uppercase"
+                      placeholder="Digite o cupom"
+                      value={couponCode}
+                      onChange={e => { setCouponCode(e.target.value.toUpperCase()); setAppliedCoupon(null) }}
+                      onKeyDown={e => e.key === 'Enter' && handleApplyCoupon()}
+                    />
+                    <button
+                      onClick={handleApplyCoupon}
+                      disabled={!couponCode.trim() || couponLoading}
+                      className="px-4 py-3 rounded-xl text-sm font-bold text-white disabled:opacity-40 transition-all"
+                      style={{ backgroundColor: primary }}>
+                      {couponLoading ? '...' : 'Aplicar'}
+                    </button>
                   </div>
                 </div>
                 <div>
@@ -468,7 +541,7 @@ export default function PremiumBookingPage() {
                 <button disabled={!selectedSlot} onClick={() => setStep(isAuthenticated ? 'confirm' : 'auth')}
                   className="w-full py-4 rounded-2xl text-white text-sm font-bold transition-all disabled:opacity-30 flex items-center justify-center gap-2"
                   style={{ backgroundColor: primary }}>
-                  {!selectedSlot ? 'Selecione um horário' : `Continuar · ${format(new Date(selectedSlot), 'HH:mm')} ${selectedDate}`}
+                  {!selectedSlot ? 'Selecione um horário' : 'Continuar'}
                   {selectedSlot && <ChevronRight className="w-4 h-4" />}
                 </button>
               )}
