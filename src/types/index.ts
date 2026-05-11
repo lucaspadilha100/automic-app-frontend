@@ -134,6 +134,26 @@ export interface CustomerPackage {
   status: string
 }
 
+export interface Package {
+  id: string
+  name: string
+  description?: string
+  total_sessions: number
+  price: number
+  validity_days?: number
+  is_active: boolean
+  service_ids?: string[]
+}
+
+export interface PackageCreate {
+  name: string
+  description?: string
+  total_sessions: number
+  price: number
+  validity_days?: number
+  service_ids?: string[]
+}
+
 export interface ProcedureHistory {
   id: string
   appointment_id: string

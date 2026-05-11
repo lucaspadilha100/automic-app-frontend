@@ -43,6 +43,7 @@ const ProfessionalDetailPage = lazy(() => import('@/features/professionals/Profe
 const CustomersPage = lazy(() => import('@/features/customers/CustomersPage'))
 const CustomerDetailPage = lazy(() => import('@/features/customers/CustomerDetailPage'))
 const PackagesPage = lazy(() => import('@/features/packages/PackagesPage'))
+const PackageFormPage = lazy(() => import('@/features/packages/PackageFormPage'))
 const PaymentsPage = lazy(() => import('@/features/payments/PaymentsPage'))
 const SchedulePage = lazy(() => import('@/features/schedule/SchedulePage'))
 const AutomationsPage = lazy(() => import('@/features/automations/AutomationsPage'))
@@ -140,6 +141,8 @@ const router = createBrowserRouter([
   { path: '/app/customers', element: A(<CustomersPage />) },
   { path: '/app/customers/:customerId', element: A(<CustomerDetailPage />) },
   { path: '/app/packages', element: A(<PackagesPage />) },
+  { path: '/app/packages/new', element: A(<PackageFormPage />) },
+  { path: '/app/packages/:packageId', element: A(<PackageFormPage />) },
   { path: '/app/payments', element: A(<PaymentsPage />) },
   { path: '/app/schedule', element: A(<SchedulePage />) },
   { path: '/app/automations', element: A(<AutomationsPage />) },
