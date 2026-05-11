@@ -1,14 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
 import { professionalsApi } from '@/api/professionals.api'
+import { mediaApi } from '@/api/media.api'
 import { apiClient } from '@/api/client'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { LoadingState } from '@/components/feedback/LoadingState'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import toast from 'react-hot-toast'
 import { extractApiError } from '@/api/client'
 import { useForm } from 'react-hook-form'
-import { KeyRound, CheckCircle } from 'lucide-react'
+import { KeyRound, CheckCircle, Camera } from 'lucide-react'
 
 const DAYS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado']
 const DEFAULT_AVAIL = DAYS.map((_, i) => ({
@@ -29,6 +30,7 @@ export default function ProfessionalDetailPage() {
   const [loginForm, setLoginForm] = useState<LoginForm>({ login_email: '', password: '', confirm: '' })
   const [availability, setAvailability] = useState(DEFAULT_AVAIL)
   const [selectedServices, setSelectedServices] = useState<string[]>([])
+  const photoInputRef = useRef<HTMLInputElement>(null)
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<ProfForm>()
 
@@ -97,6 +99,16 @@ export default function ProfessionalDetailPage() {
     onError: (e: unknown) => toast.error(extractApiError(e)),
   })
 
+  const photoMut = useMutation({
+    mutationFn: async (file: File) => {
+      const uploaded = await mediaApi.upload(file, 'image', 'professional', professionalId)
+      const fileUrl = (uploaded as unknown as { file_url: string }).file_url
+      return professionalsApi.update(professionalId!, { photo_url: fileUrl } as Parameters<typeof professionalsApi.update>[1])
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['professional', professionalId] }); toast.success('Foto atualizada') },
+    onError: (e: unknown) => toast.error(extractApiError(e)),
+  })
+
   const onSubmit = (data: ProfForm) => isNew ? createMut.mutate(data) : updateMut.mutate(data)
 
   if (!isNew && isLoading) return <LoadingState />
@@ -118,6 +130,44 @@ export default function ProfessionalDetailPage() {
 
       {(tab === 'info' || isNew) && (
         <form onSubmit={handleSubmit(onSubmit)} className="card p-6 space-y-4">
+          {!isNew && (
+            <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
+              <div className="relative group w-20 h-20 shrink-0">
+                {professional?.photo_url ? (
+                  <img src={professional.photo_url} alt={professional.name} className="w-20 h-20 rounded-full object-cover" />
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-primary-100 flex items-center justify-center">
+                    <span className="text-2xl font-bold text-primary-600">
+                      {professional?.name?.split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => photoInputRef.current?.click()}
+                  disabled={photoMut.isPending}
+                  className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                >
+                  <Camera className="w-5 h-5 text-white" />
+                </button>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-700">Foto do profissional</p>
+                <p className="text-xs text-slate-400 mt-0.5">Aparece na página pública e no portal do cliente</p>
+                <button type="button" onClick={() => photoInputRef.current?.click()} disabled={photoMut.isPending}
+                  className="mt-2 text-xs text-primary-600 hover:underline font-medium">
+                  {photoMut.isPending ? 'Enviando...' : professional?.photo_url ? 'Trocar foto' : 'Adicionar foto'}
+                </button>
+              </div>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) photoMut.mutate(f); e.target.value = '' }}
+              />
+            </div>
+          )}
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className="label">Nome *</label>
