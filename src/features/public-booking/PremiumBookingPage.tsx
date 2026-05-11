@@ -1108,6 +1108,12 @@ export default function PremiumBookingPage() {
               )}
             </div>
           </div>
+          <div className="mt-6 pt-4 border-t border-zinc-800 text-center">
+            <a href="https://instagram.com/automic.tech" target="_blank" rel="noopener noreferrer"
+              className="text-[11px] text-zinc-600 hover:text-zinc-400 transition-colors">
+              Desenvolvido por <span className="font-semibold">Automic.tech</span>
+            </a>
+          </div>
         </div>
       </footer>
 

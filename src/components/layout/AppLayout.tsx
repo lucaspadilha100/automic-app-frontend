@@ -93,6 +93,15 @@ function NavContent({ onClose }: { onClose?: () => void }) {
     enabled: !!user,
   })
 
+  const { data: tenantSettings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: settingsApi.get,
+    staleTime: 10 * 60 * 1000,
+    enabled: !!user && user.role !== 'super_admin',
+  })
+
+  const logoUrl: string | undefined = tenantSettings?.theme?.logo_url
+
   const isProf = user?.role === 'professional'
   const isSuperAdmin = user?.role === 'super_admin'
 
@@ -118,12 +127,15 @@ function NavContent({ onClose }: { onClose?: () => void }) {
   return (
     <>
       <div className="flex items-center gap-3 px-4 h-16 border-b border-slate-100 shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-primary-400 flex items-center justify-center shrink-0">
-          <span className="text-slate-900 font-black text-sm">A</span>
+        <div className="w-8 h-8 rounded-lg overflow-hidden bg-primary-100 flex items-center justify-center shrink-0">
+          {logoUrl
+            ? <img src={logoUrl} alt="logo" className="w-full h-full object-cover" />
+            : <span className="text-primary-700 font-black text-sm">{(user?.tenant_name || 'A').charAt(0).toUpperCase()}</span>
+          }
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-black text-slate-900 text-sm tracking-tight leading-none">AUTOMIC</p>
-          <p className="text-[10px] text-slate-400 mt-0.5 truncate">{user?.tenant_name || 'Booking'}</p>
+          <p className="font-black text-slate-900 text-sm tracking-tight leading-none truncate">{user?.tenant_name || 'AUTOMIC'}</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">por <span className="font-medium">Automic.tech</span></p>
         </div>
         {onClose && (
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 lg:hidden">
@@ -183,6 +195,15 @@ function NavContent({ onClose }: { onClose?: () => void }) {
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
+  const { user } = useAuthStore()
+
+  const { data: tenantSettingsTop } = useQuery({
+    queryKey: ['settings'],
+    queryFn: settingsApi.get,
+    staleTime: 10 * 60 * 1000,
+    enabled: !!user && user.role !== 'super_admin',
+  })
+  const logoUrlTop: string | undefined = tenantSettingsTop?.theme?.logo_url
 
   const handleClose = () => setMobileOpen(false)
 
@@ -207,10 +228,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-primary-400 flex items-center justify-center">
-              <span className="text-slate-900 font-black text-xs">A</span>
+            <div className="w-6 h-6 rounded-md overflow-hidden bg-primary-100 flex items-center justify-center">
+              {logoUrlTop
+                ? <img src={logoUrlTop} alt="logo" className="w-full h-full object-cover" />
+                : <span className="text-primary-700 font-black text-xs">{(user?.tenant_name || 'A').charAt(0).toUpperCase()}</span>
+              }
             </div>
-            <span className="font-bold text-slate-900 text-sm">AUTOMIC</span>
+            <span className="font-bold text-slate-900 text-sm truncate max-w-[140px]">{user?.tenant_name || 'AUTOMIC'}</span>
           </div>
         </div>
 
