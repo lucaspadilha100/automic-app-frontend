@@ -3,14 +3,27 @@ import {
   LayoutDashboard, Calendar, CalendarDays, Users, Scissors, Package, CreditCard,
   Settings, Building2, BookOpen, Bell, Zap, Headphones,
   LogOut, ClipboardList, BarChart3, ClipboardCheck, Menu, X, TrendingUp, MessageCircle,
-  Star, Tag, Images, ShoppingBag, FlaskConical,
+  Star, Tag, Images, ShoppingBag, FlaskConical, Lock,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useQuery } from '@tanstack/react-query'
 import { settingsApi } from '@/api/settings.api'
 import { useState } from 'react'
+import toast from 'react-hot-toast'
 
-const baseNav = [
+type NavItem = {
+  to: string
+  label: string
+  icon: React.ElementType
+  feature?: string
+}
+
+type NavSection = {
+  section: string
+  items: NavItem[]
+}
+
+const baseNav: NavSection[] = [
   { section: 'Principal', items: [
     { to: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/app/calendar', label: 'Agenda', icon: Calendar },
@@ -21,6 +34,8 @@ const baseNav = [
     { to: '/app/professionals', label: 'Profissionais', icon: Scissors },
     { to: '/app/services', label: 'Serviços', icon: ClipboardList },
     { to: '/app/packages', label: 'Pacotes', icon: Package },
+    { to: '/app/products', label: 'Produtos', icon: ShoppingBag, feature: 'ecommerce' },
+    { to: '/app/supplies', label: 'Insumos', icon: FlaskConical, feature: 'product_usage' },
   ]},
   { section: 'Financeiro', items: [
     { to: '/app/payments', label: 'Pagamentos', icon: CreditCard },
@@ -47,6 +62,26 @@ const baseNav = [
   ]},
 ]
 
+function LockedNavItem({ label, icon: Icon }: { label: string; icon: React.ElementType }) {
+  function handleClick() {
+    toast('Entre em contato para habilitar esta funcionalidade.', {
+      icon: '🔒',
+      duration: 4000,
+    })
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-50 transition-all cursor-pointer"
+    >
+      <Icon className="w-4 h-4 shrink-0" />
+      <span className="flex-1 text-left">{label}</span>
+      <Lock className="w-3 h-3 shrink-0 opacity-60" />
+    </button>
+  )
+}
+
 function NavContent({ onClose }: { onClose?: () => void }) {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
@@ -55,28 +90,29 @@ function NavContent({ onClose }: { onClose?: () => void }) {
     queryKey: ['effective-features'],
     queryFn: settingsApi.getEffectiveFeatures,
     staleTime: 5 * 60 * 1000,
-    enabled: !!user && user.role !== 'super_admin',
+    enabled: !!user,
   })
 
   const isProf = user?.role === 'professional'
+  const isSuperAdmin = user?.role === 'super_admin'
 
-  const nav = isProf
+  const nav: NavSection[] = isProf
     ? [{ section: 'Agenda', items: [
         { to: '/app/my-schedule', label: 'Minha Agenda', icon: CalendarDays },
         { to: '/app/customers', label: 'Clientes', icon: Users },
       ]}]
-    : baseNav.map(section => {
-        if (section.section !== 'Cadastros') return section
-        const extraItems = []
-        if (features?.ecommerce) extraItems.push({ to: '/app/products', label: 'Produtos', icon: ShoppingBag })
-        if (features?.product_usage) extraItems.push({ to: '/app/supplies', label: 'Insumos', icon: FlaskConical })
-        return { ...section, items: [...section.items, ...extraItems] }
-      })
+    : baseNav
 
   const handleLogout = () => {
     logout()
     localStorage.clear()
     navigate('/login')
+  }
+
+  function isEnabled(feature: string | undefined): boolean {
+    if (!feature) return true
+    if (isSuperAdmin) return true
+    return !!(features?.[feature])
   }
 
   return (
@@ -97,26 +133,33 @@ function NavContent({ onClose }: { onClose?: () => void }) {
       </div>
 
       <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-4">
-        {nav.map(({ section, items }) => (
-          <div key={section}>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-1">{section}</p>
-            <div className="space-y-0.5">
-              {items.map(({ to, label, icon: Icon }) => (
-                <NavLink key={to} to={to} onClick={onClose}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                      isActive
-                        ? 'bg-primary-50 text-primary-700 font-semibold border-l-2 border-primary-400 pl-[10px]'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                    }`
-                  }>
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <span>{label}</span>
-                </NavLink>
-              ))}
+        {nav.map(({ section, items }) => {
+          const unlocked = items.filter(i => isEnabled(i.feature))
+          const locked = items.filter(i => !isEnabled(i.feature))
+          return (
+            <div key={section}>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-1">{section}</p>
+              <div className="space-y-0.5">
+                {unlocked.map(({ to, label, icon: Icon }) => (
+                  <NavLink key={to} to={to} onClick={onClose}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-primary-50 text-primary-700 font-semibold border-l-2 border-primary-400 pl-[10px]'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`
+                    }>
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span>{label}</span>
+                  </NavLink>
+                ))}
+                {locked.map(({ to, label, icon }) => (
+                  <LockedNavItem key={to} label={label} icon={icon} />
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </nav>
 
       <div className="border-t border-slate-100 p-3 shrink-0">
