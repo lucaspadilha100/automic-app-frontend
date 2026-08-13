@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { SkeletonTable } from '@/components/feedback/LoadingState'
 import { EmptyState } from '@/components/feedback/EmptyState'
+import { ErrorState } from '@/components/feedback/ErrorState'
 import { Building2, ChevronRight, MoreVertical } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
@@ -15,7 +16,7 @@ const STATUS_OPTS = ['', 'trial', 'active', 'suspended', 'cancelled']
 export default function TenantsListPage() {
   const qc = useQueryClient()
   const [filterStatus, setFilterStatus] = useState('')
-  const { data: tenants, isLoading } = useQuery({
+  const { data: tenants, isLoading, error, refetch } = useQuery({
     queryKey: ['master','tenants', filterStatus],
     queryFn: () => masterApi.listTenants(filterStatus ? { status: filterStatus } : undefined),
   })
@@ -30,6 +31,16 @@ export default function TenantsListPage() {
     <div>
       <PageHeader title="Empresas" subtitle="Todos os tenants ativos na plataforma" actions={<Link to="/master/tenants/new" className="btn-primary">+ Nova</Link>} />
       <SkeletonTable />
+    </div>
+  )
+
+  // A failed request leaves `tenants` undefined, which would otherwise render the
+  // same "nenhuma empresa encontrada" as a genuinely empty list — so a timeout or
+  // a 500 looks like "you have no tenants". Show the real error instead.
+  if (error) return (
+    <div>
+      <PageHeader title="Empresas" subtitle="Todos os tenants ativos na plataforma" actions={<Link to="/master/tenants/new" className="btn-primary">+ Nova</Link>} />
+      <ErrorState error={error} onRetry={() => refetch()} />
     </div>
   )
 
