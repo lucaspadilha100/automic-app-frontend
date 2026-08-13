@@ -1,5 +1,6 @@
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
+import type { ComponentType } from 'react'
 import { ProtectedRoute, CustomerProtectedRoute } from '@/components/layout/ProtectedRoute'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { MasterLayout } from '@/components/layout/MasterLayout'
@@ -11,74 +12,100 @@ import ForgotPasswordPage from '@/features/auth/ForgotPasswordPage'
 import CustomerLoginPage from '@/features/customer-auth/CustomerLoginPage'
 import CustomerRegisterPage from '@/features/customer-auth/CustomerRegisterPage'
 
-// All other pages — lazy loaded
-const MasterDashboard = lazy(() => import('@/features/master/MasterDashboard'))
-const TenantsListPage = lazy(() => import('@/features/master/TenantsListPage'))
-const NewTenantPage = lazy(() => import('@/features/master/NewTenantPage'))
-const TenantDetailPage = lazy(() => import('@/features/master/TenantDetailPage'))
-const TenantFeaturesPage = lazy(() => import('@/features/master/TenantFeaturesPage'))
-const TenantLimitsPage = lazy(() => import('@/features/master/TenantLimitsPage'))
-const TenantAuditLogsPage = lazy(() => import('@/features/master/TenantAuditLogsPage'))
-const TenantSettingsPage = lazy(() => import('@/features/master/TenantSettingsPage'))
-const TenantThemePage = lazy(() => import('@/features/master/TenantThemePage'))
-const PlansListPage = lazy(() => import('@/features/master/PlansListPage'))
-const MasterInvoicesPage = lazy(() => import('@/features/master/MasterInvoicesPage'))
-const MasterJobsPage = lazy(() => import('@/features/master/MasterJobsPage'))
-const MasterTasksPage = lazy(() => import('@/features/master/MasterTasksPage'))
-const MasterNotificationsPage = lazy(() => import('@/features/master/MasterNotificationsPage'))
-const MasterSupportPage = lazy(() => import('@/features/master/MasterSupportPage'))
-const MasterPlatformPage = lazy(() => import('@/features/master/MasterPlatformPage'))
+const CHUNK_RELOAD_KEY = 'chunk_reload_at'
 
-const MySchedulePage = lazy(() => import('@/features/schedule/MySchedulePage'))
-const DashboardPage = lazy(() => import('@/features/tenant-dashboard/DashboardPage'))
-const AppointmentsPage = lazy(() => import('@/features/appointments/AppointmentsPage'))
-const NewAppointmentPage = lazy(() => import('@/features/appointments/NewAppointmentPage'))
-const AppointmentDetailPage = lazy(() => import('@/features/appointments/AppointmentDetailPage'))
-const CalendarPage = lazy(() => import('@/features/appointments/CalendarPage'))
-const ServicesPage = lazy(() => import('@/features/services/ServicesPage'))
-const ServiceFormPage = lazy(() => import('@/features/services/ServiceFormPage'))
-const ServiceCategoriesPage = lazy(() => import('@/features/services/ServiceCategoriesPage'))
-const ProfessionalsPage = lazy(() => import('@/features/professionals/ProfessionalsPage'))
-const ProfessionalDetailPage = lazy(() => import('@/features/professionals/ProfessionalDetailPage'))
-const CustomersPage = lazy(() => import('@/features/customers/CustomersPage'))
-const CustomerDetailPage = lazy(() => import('@/features/customers/CustomerDetailPage'))
-const PackagesPage = lazy(() => import('@/features/packages/PackagesPage'))
-const PackageFormPage = lazy(() => import('@/features/packages/PackageFormPage'))
-const PaymentsPage = lazy(() => import('@/features/payments/PaymentsPage'))
-const SchedulePage = lazy(() => import('@/features/schedule/SchedulePage'))
-const AutomationsPage = lazy(() => import('@/features/automations/AutomationsPage'))
-const CommissionsPage = lazy(() => import('@/features/commissions/CommissionsPage'))
-const FormsPage = lazy(() => import('@/features/forms/FormsPage'))
-const UnitsPage = lazy(() => import('@/features/units/UnitsPage'))
-const WaitlistPage = lazy(() => import('@/features/units/WaitlistPage'))
-const ResourcesPage = lazy(() => import('@/features/resources/ResourcesPage'))
-const AuditLogsPage = lazy(() => import('@/features/audit/AuditLogsPage'))
-const MediaPage = lazy(() => import('@/features/media/MediaPage'))
-const NotificationsPage = lazy(() => import('@/features/notifications/NotificationsPage'))
-const SettingsPage = lazy(() => import('@/features/settings/SettingsPage'))
-const GeneralSettingsPage = lazy(() => import('@/features/settings/GeneralSettingsPage'))
-const BookingSettingsPage = lazy(() => import('@/features/settings/BookingSettingsPage'))
-const ThemeSettingsPage = lazy(() => import('@/features/settings/ThemeSettingsPage'))
-const WebhooksPage = lazy(() => import('@/features/settings/WebhooksPage'))
-const PaymentSettingsPage = lazy(() => import('@/features/settings/PaymentSettingsPage'))
-const NotificationSettingsPage = lazy(() => import('@/features/settings/NotificationSettingsPage'))
-const WhatsAppSettingsPage = lazy(() => import('@/features/settings/WhatsAppSettingsPage'))
-const CompanyProfilePage = lazy(() => import('@/features/settings/CompanyProfilePage'))
-const PageSectionsPage = lazy(() => import('@/features/settings/PageSectionsPage'))
-const LifecyclePage = lazy(() => import('@/features/lifecycle/LifecyclePage'))
-const ReportsPage = lazy(() => import('@/features/reports/ReportsPage'))
-const ReviewsPage = lazy(() => import('@/features/reviews/ReviewsPage'))
-const CouponsPage = lazy(() => import('@/features/coupons/CouponsPage'))
-const ProcedurePhotosPage = lazy(() => import('@/features/procedure-photos/ProcedurePhotosPage'))
-const UsersPage = lazy(() => import('@/features/users/UsersPage'))
-const TermsPage = lazy(() => import('@/features/settings/TermsPage'))
-const ProductsPage = lazy(() => import('@/features/products/ProductsPage'))
-const SuppliesPage = lazy(() => import('@/features/supplies/SuppliesPage'))
-const SignupPage = lazy(() => import('@/features/auth/SignupPage'))
-const PublicBookingPage = lazy(() => import('@/features/public-booking/PublicBookingPage'))
-const CustomerAppointmentsPage = lazy(() => import('@/features/customer-portal/CustomerAppointmentsPage'))
-const CustomerPackagesPage = lazy(() => import('@/features/customer-portal/CustomerPackagesPage'))
-const CustomerProfilePage = lazy(() => import('@/features/customer-portal/CustomerProfilePage'))
+/**
+ * Every page below is a separate hashed chunk. A deploy publishes new hashes and
+ * drops the old files, so a tab that is still running the previous index.html
+ * asks for a chunk that no longer exists and React Router surfaces
+ * "Failed to fetch dynamically imported module" instead of the page.
+ *
+ * The tab just needs the new index.html: reload once on that failure. The
+ * timestamp guard keeps a genuinely broken chunk (or an offline user) from
+ * looping — the second failure within 10s propagates as a real error.
+ */
+function lazyPage<T extends ComponentType<unknown>>(factory: () => Promise<{ default: T }>) {
+  return lazy(() =>
+    factory().catch((err) => {
+      const last = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) || 0)
+      if (Date.now() - last > 10_000) {
+        sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()))
+        window.location.reload()
+        return new Promise<{ default: T }>(() => {}) // never settles; the page is reloading
+      }
+      throw err
+    })
+  )
+}
+
+// All other pages — lazy loaded
+const MasterDashboard = lazyPage(() => import('@/features/master/MasterDashboard'))
+const TenantsListPage = lazyPage(() => import('@/features/master/TenantsListPage'))
+const NewTenantPage = lazyPage(() => import('@/features/master/NewTenantPage'))
+const TenantDetailPage = lazyPage(() => import('@/features/master/TenantDetailPage'))
+const TenantFeaturesPage = lazyPage(() => import('@/features/master/TenantFeaturesPage'))
+const TenantLimitsPage = lazyPage(() => import('@/features/master/TenantLimitsPage'))
+const TenantAuditLogsPage = lazyPage(() => import('@/features/master/TenantAuditLogsPage'))
+const TenantSettingsPage = lazyPage(() => import('@/features/master/TenantSettingsPage'))
+const TenantThemePage = lazyPage(() => import('@/features/master/TenantThemePage'))
+const PlansListPage = lazyPage(() => import('@/features/master/PlansListPage'))
+const MasterInvoicesPage = lazyPage(() => import('@/features/master/MasterInvoicesPage'))
+const MasterJobsPage = lazyPage(() => import('@/features/master/MasterJobsPage'))
+const MasterTasksPage = lazyPage(() => import('@/features/master/MasterTasksPage'))
+const MasterNotificationsPage = lazyPage(() => import('@/features/master/MasterNotificationsPage'))
+const MasterSupportPage = lazyPage(() => import('@/features/master/MasterSupportPage'))
+const MasterPlatformPage = lazyPage(() => import('@/features/master/MasterPlatformPage'))
+
+const MySchedulePage = lazyPage(() => import('@/features/schedule/MySchedulePage'))
+const DashboardPage = lazyPage(() => import('@/features/tenant-dashboard/DashboardPage'))
+const AppointmentsPage = lazyPage(() => import('@/features/appointments/AppointmentsPage'))
+const NewAppointmentPage = lazyPage(() => import('@/features/appointments/NewAppointmentPage'))
+const AppointmentDetailPage = lazyPage(() => import('@/features/appointments/AppointmentDetailPage'))
+const CalendarPage = lazyPage(() => import('@/features/appointments/CalendarPage'))
+const ServicesPage = lazyPage(() => import('@/features/services/ServicesPage'))
+const ServiceFormPage = lazyPage(() => import('@/features/services/ServiceFormPage'))
+const ServiceCategoriesPage = lazyPage(() => import('@/features/services/ServiceCategoriesPage'))
+const ProfessionalsPage = lazyPage(() => import('@/features/professionals/ProfessionalsPage'))
+const ProfessionalDetailPage = lazyPage(() => import('@/features/professionals/ProfessionalDetailPage'))
+const CustomersPage = lazyPage(() => import('@/features/customers/CustomersPage'))
+const CustomerDetailPage = lazyPage(() => import('@/features/customers/CustomerDetailPage'))
+const PackagesPage = lazyPage(() => import('@/features/packages/PackagesPage'))
+const PackageFormPage = lazyPage(() => import('@/features/packages/PackageFormPage'))
+const PaymentsPage = lazyPage(() => import('@/features/payments/PaymentsPage'))
+const SchedulePage = lazyPage(() => import('@/features/schedule/SchedulePage'))
+const AutomationsPage = lazyPage(() => import('@/features/automations/AutomationsPage'))
+const CommissionsPage = lazyPage(() => import('@/features/commissions/CommissionsPage'))
+const FormsPage = lazyPage(() => import('@/features/forms/FormsPage'))
+const UnitsPage = lazyPage(() => import('@/features/units/UnitsPage'))
+const WaitlistPage = lazyPage(() => import('@/features/units/WaitlistPage'))
+const ResourcesPage = lazyPage(() => import('@/features/resources/ResourcesPage'))
+const AuditLogsPage = lazyPage(() => import('@/features/audit/AuditLogsPage'))
+const MediaPage = lazyPage(() => import('@/features/media/MediaPage'))
+const NotificationsPage = lazyPage(() => import('@/features/notifications/NotificationsPage'))
+const SettingsPage = lazyPage(() => import('@/features/settings/SettingsPage'))
+const GeneralSettingsPage = lazyPage(() => import('@/features/settings/GeneralSettingsPage'))
+const BookingSettingsPage = lazyPage(() => import('@/features/settings/BookingSettingsPage'))
+const ThemeSettingsPage = lazyPage(() => import('@/features/settings/ThemeSettingsPage'))
+const WebhooksPage = lazyPage(() => import('@/features/settings/WebhooksPage'))
+const PaymentSettingsPage = lazyPage(() => import('@/features/settings/PaymentSettingsPage'))
+const NotificationSettingsPage = lazyPage(() => import('@/features/settings/NotificationSettingsPage'))
+const WhatsAppSettingsPage = lazyPage(() => import('@/features/settings/WhatsAppSettingsPage'))
+const CompanyProfilePage = lazyPage(() => import('@/features/settings/CompanyProfilePage'))
+const PageSectionsPage = lazyPage(() => import('@/features/settings/PageSectionsPage'))
+const LifecyclePage = lazyPage(() => import('@/features/lifecycle/LifecyclePage'))
+const ReportsPage = lazyPage(() => import('@/features/reports/ReportsPage'))
+const ReviewsPage = lazyPage(() => import('@/features/reviews/ReviewsPage'))
+const CouponsPage = lazyPage(() => import('@/features/coupons/CouponsPage'))
+const ProcedurePhotosPage = lazyPage(() => import('@/features/procedure-photos/ProcedurePhotosPage'))
+const UsersPage = lazyPage(() => import('@/features/users/UsersPage'))
+const TermsPage = lazyPage(() => import('@/features/settings/TermsPage'))
+const ProductsPage = lazyPage(() => import('@/features/products/ProductsPage'))
+const SuppliesPage = lazyPage(() => import('@/features/supplies/SuppliesPage'))
+const SignupPage = lazyPage(() => import('@/features/auth/SignupPage'))
+const PublicBookingPage = lazyPage(() => import('@/features/public-booking/PublicBookingPage'))
+const CustomerAppointmentsPage = lazyPage(() => import('@/features/customer-portal/CustomerAppointmentsPage'))
+const CustomerPackagesPage = lazyPage(() => import('@/features/customer-portal/CustomerPackagesPage'))
+const CustomerProfilePage = lazyPage(() => import('@/features/customer-portal/CustomerProfilePage'))
 
 function Fallback() {
   return <div className="flex items-center justify-center h-64"><LoadingState /></div>
