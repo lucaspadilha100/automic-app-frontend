@@ -37,7 +37,12 @@ export default function MasterPlatformPage() {
   })
 
   const updateDocMut = useMutation({
-    mutationFn: ({ type, content }: { type: string; content: string }) => masterApi.updatePlatformDocument(type, { content }),
+    // PlatformDocumentUpsert requires title and content; version defaults to 1.0
+    // server-side. The title is not editable here, so it comes from the tab label.
+    mutationFn: ({ type, content }: { type: string; content: string }) => {
+      const title = DOC_TYPES.find(d => d.key === type)?.label ?? type
+      return masterApi.updatePlatformDocument(type, { title, content })
+    },
     onSuccess: () => toast.success('Documento salvo'),
     onError: (e: unknown) => toast.error(extractApiError(e)),
   })
@@ -57,9 +62,12 @@ export default function MasterPlatformPage() {
     { key: 'platform_name', label: 'Nome da plataforma', placeholder: 'AUTOMIC' },
     { key: 'support_email', label: 'Email de suporte', placeholder: 'suporte@automic.tech.com.br' },
     { key: 'support_phone', label: 'Telefone suporte', placeholder: '+55 84 99999-0000' },
-    { key: 'domain', label: 'Domínio', placeholder: 'automic.tech.com.br' },
-    { key: 'legal_name', label: 'Razão social', placeholder: 'AUTOMIC Tech LTDA' },
-    { key: 'cnpj', label: 'CNPJ', placeholder: '00.000.000/0001-00' },
+    // Keys must match PlatformSettingsUpdate exactly: every field there is
+    // optional, so a misspelled key is dropped without an error and the value
+    // silently fails to save.
+    { key: 'primary_domain', label: 'Domínio', placeholder: 'automic.tech.com.br' },
+    { key: 'platform_legal_name', label: 'Razão social', placeholder: 'AUTOMIC Tech LTDA' },
+    { key: 'platform_cnpj', label: 'CNPJ', placeholder: '00.000.000/0001-00' },
   ]
 
   return (
@@ -129,8 +137,10 @@ export default function MasterPlatformPage() {
           <div className="flex justify-end mt-4">
             <button className="btn-primary"
               onClick={() => updateDocMut.mutate({ type: d.key, content: docContent[d.key] || '' })}
-              disabled={updateDocMut.isPending}>
-              Salvar documento
+              // content is required server-side (min_length=1); an empty textarea
+              // would come back as a 422 the user cannot act on.
+              disabled={updateDocMut.isPending || !(docContent[d.key] || '').trim()}>
+              {updateDocMut.isPending ? 'Salvando...' : 'Salvar documento'}
             </button>
           </div>
         </div>

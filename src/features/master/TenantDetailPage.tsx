@@ -21,7 +21,13 @@ export default function TenantDetailPage() {
     queryKey: ['master','billing-mode', tenantId],
     queryFn: () => masterApi.getBillingMode(tenantId!),
   })
-  const { data: plans } = useQuery({ queryKey: ['master','plans'], queryFn: () => masterApi.listPlans() })
+  // The tenant payload has no subscription, so plan name, custom price and the
+  // plan_id required by the subscription update all come from here.
+  const { data: effectivePlan } = useQuery({
+    queryKey: ['master','effective-plan', tenantId],
+    queryFn: () => masterApi.getEffectivePlan(tenantId!),
+  })
+  const subscription = effectivePlan?.subscription
 
   const [tab, setTab] = useState<'overview'|'invoices'|'payment'|'features'|'limits'>('overview')
   const [customPriceOpen, setCustomPriceOpen] = useState(false)
@@ -37,19 +43,34 @@ export default function TenantDetailPage() {
 
   const manualPaymentMut = useMutation({
     mutationFn: (data: Record<string, unknown>) => masterApi.manualPayment(tenantId!, data),
-    onSuccess: () => { toast.success('Pagamento registrado'); setManualPaymentOpen(false) },
+    onSuccess: () => {
+      // A manual payment settles an invoice and moves the tenant's billing state,
+      // so both the invoice list and the commercial view are now stale.
+      qc.invalidateQueries({ queryKey: ['master','invoices'] })
+      qc.invalidateQueries({ queryKey: ['master','effective-plan', tenantId] })
+      qc.invalidateQueries({ queryKey: ['master','tenant', tenantId] })
+      toast.success('Pagamento registrado'); setManualPaymentOpen(false)
+    },
     onError: (e) => toast.error(extractApiError(e)),
   })
 
   const statusMut = useMutation({
     mutationFn: (status: string) => masterApi.updateTenantStatus(tenantId!, status),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['master','tenant', tenantId] }); toast.success('Status atualizado') },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['master','tenant', tenantId] })
+      qc.invalidateQueries({ queryKey: ['master','tenants'] })
+      toast.success('Status atualizado')
+    },
     onError: (e) => toast.error(extractApiError(e)),
   })
 
   const customPriceMut = useMutation({
     mutationFn: (data: Record<string, unknown>) => masterApi.updateSubscription(tenantId!, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['master','tenant', tenantId] }); toast.success('Preço customizado salvo'); setCustomPriceOpen(false) },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['master','effective-plan', tenantId] })
+      qc.invalidateQueries({ queryKey: ['master','tenant', tenantId] })
+      toast.success('Preço customizado salvo'); setCustomPriceOpen(false)
+    },
     onError: (e) => toast.error(extractApiError(e)),
   })
 
@@ -80,7 +101,7 @@ export default function TenantDetailPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Status', value: <StatusBadge status={tenant.status} /> },
-          { label: 'Plano', value: plans?.find((p: {id:string;name:string}) => p.id === tenant.subscription?.plan_id)?.name || '-' },
+          { label: 'Plano', value: effectivePlan?.plan?.name || '-' },
           { label: 'Modo billing', value: <StatusBadge status={billingMode?.billing_mode || 'manual'} /> },
           { label: 'Criado', value: new Date(tenant.created_at).toLocaleDateString('pt-BR') },
         ].map(({ label, value }) => (
@@ -148,7 +169,7 @@ export default function TenantDetailPage() {
             <Link to={`/master/invoices?tenant_id=${tenantId}`} className="btn-secondary flex-1 justify-center">
               <FileText className="w-4 h-4" /> Ver faturas
             </Link>
-            <button className="btn-secondary flex-1" onClick={() => { setCustomPriceForm({ custom_price_monthly: tenant.subscription?.custom_price_monthly || '', custom_price_reason: tenant.subscription?.custom_price_reason || '', billing_notes: tenant.subscription?.billing_notes || '' }); setCustomPriceOpen(true) }}>
+            <button className="btn-secondary flex-1" onClick={() => { setCustomPriceForm({ custom_price_monthly: subscription?.custom_price_monthly ?? '', custom_price_reason: subscription?.custom_price_reason ?? '', billing_notes: subscription?.billing_notes ?? '' }); setCustomPriceOpen(true) }}>
               <Tag className="w-4 h-4" /> Preço customizado
             </button>
             <button className="btn-primary flex-1" onClick={() => setManualPaymentOpen(true)}>
@@ -209,10 +230,13 @@ export default function TenantDetailPage() {
             <div className="modal-footer">
               <button className="btn-secondary" onClick={() => setCustomPriceOpen(false)}>Cancelar</button>
               <button className="btn-primary" onClick={() => customPriceMut.mutate({
+                // SubscriptionUpdate requires plan_id; without it the whole save
+                // is rejected as 422. Keep the tenant on its current plan.
+                plan_id: effectivePlan?.plan?.id,
                 custom_price_monthly: customPriceForm.custom_price_monthly ? Number(customPriceForm.custom_price_monthly) : null,
                 custom_price_reason: customPriceForm.custom_price_reason || null,
                 billing_notes: customPriceForm.billing_notes || null,
-              })} disabled={customPriceMut.isPending}>
+              })} disabled={customPriceMut.isPending || !effectivePlan?.plan?.id}>
                 {customPriceMut.isPending ? 'Salvando...' : 'Salvar'}
               </button>
             </div>

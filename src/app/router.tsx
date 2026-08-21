@@ -101,6 +101,7 @@ const UsersPage = lazyPage(() => import('@/features/users/UsersPage'))
 const TermsPage = lazyPage(() => import('@/features/settings/TermsPage'))
 const ProductsPage = lazyPage(() => import('@/features/products/ProductsPage'))
 const SuppliesPage = lazyPage(() => import('@/features/supplies/SuppliesPage'))
+const PlanFormPage = lazyPage(() => import('@/features/master/PlanFormPage'))
 const SignupPage = lazyPage(() => import('@/features/auth/SignupPage'))
 const PublicBookingPage = lazyPage(() => import('@/features/public-booking/PublicBookingPage'))
 const CustomerAppointmentsPage = lazyPage(() => import('@/features/customer-portal/CustomerAppointmentsPage'))
@@ -143,6 +144,8 @@ const router = createBrowserRouter([
   { path: '/master/tenants/:tenantId/limits', element: M(<TenantLimitsPage />) },
   { path: '/master/tenants/:tenantId/audit-logs', element: M(<TenantAuditLogsPage />) },
   { path: '/master/plans', element: M(<PlansListPage />) },
+  { path: '/master/plans/new', element: M(<PlanFormPage />) },
+  { path: '/master/plans/:planId', element: M(<PlanFormPage />) },
   { path: '/master/invoices', element: M(<MasterInvoicesPage />) },
   { path: '/master/jobs', element: M(<MasterJobsPage />) },
   { path: '/master/tasks', element: M(<MasterTasksPage />) },

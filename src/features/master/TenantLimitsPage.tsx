@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import type { LimitOverride } from '@/types'
 import { useEffect } from 'react'
 import toast from 'react-hot-toast'
+import { extractApiError } from '@/api/client'
 
 export default function TenantLimitsPage() {
   const { tenantId } = useParams<{ tenantId: string }>()
@@ -24,6 +25,7 @@ export default function TenantLimitsPage() {
   const mutation = useMutation<unknown, Error, LimitOverride>({
     mutationFn: (d: LimitOverride) => masterApi.updateLimitOverrides(tenantId!, d),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['master', 'tenant-limits', tenantId] }); toast.success('Limites atualizados') },
+    onError: (e) => toast.error(extractApiError(e)),
   })
 
   if (isLoading) return <LoadingState />
@@ -41,7 +43,13 @@ export default function TenantLimitsPage() {
     <div>
       <PageHeader title="Limites personalizados" subtitle="Substitui os limites do plano para esta empresa" />
       <div className="card p-6 bg-white border-slate-200">
-        <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
+        {/* An emptied number input yields NaN from valueAsNumber; send an explicit
+            null so the backend clears the override instead of receiving garbage. */}
+        <form onSubmit={handleSubmit((d) => mutation.mutate(
+          Object.fromEntries(
+            Object.entries(d).map(([k, v]) => [k, typeof v === 'number' && Number.isNaN(v) ? null : v])
+          ) as LimitOverride
+        ))} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             {fields.map(({ name, label }) => (
               <div key={name}>

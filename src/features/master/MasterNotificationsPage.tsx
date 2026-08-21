@@ -28,6 +28,7 @@ export default function MasterNotificationsPage() {
   const markMut = useMutation({
     mutationFn: (id: string) => masterApi.markRead(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['master','notifications'] }),
+    onError: (e) => toast.error(extractApiError(e)),
   })
 
   if (isLoading) return <LoadingState />
@@ -56,7 +57,9 @@ export default function MasterNotificationsPage() {
               <p className="text-[10px] text-slate-400 mt-2">{new Date(n.created_at as string).toLocaleString('pt-BR')}</p>
             </div>
             {!n.read_at && (
-              <button onClick={() => markMut.mutate(n.id as string)} className="text-xs text-slate-400 hover:text-slate-600 shrink-0">
+              <button onClick={() => markMut.mutate(n.id as string)}
+                disabled={markMut.isPending && markMut.variables === n.id}
+                className="text-xs text-slate-400 hover:text-slate-600 shrink-0 disabled:opacity-50">
                 ✓ Lida
               </button>
             )}

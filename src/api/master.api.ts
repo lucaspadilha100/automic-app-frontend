@@ -17,10 +17,15 @@ export const masterApi = {
 
   // ---- Plans ----
   listPlans: async () => (await apiClient.get(`${M}/plans`)).data,
+  getPlan: async (id: string) => (await apiClient.get(`${M}/plans/${id}`)).data,
   createPlan: async (data: Record<string, unknown>) => (await apiClient.post(`${M}/plans`, data)).data,
   updatePlan: async (id: string, data: Record<string, unknown>) => (await apiClient.put(`${M}/plans/${id}`, data)).data,
 
   // ---- Subscription ----
+  // TenantResponse carries no subscription, so the commercial view of a tenant
+  // (plan, subscription, effective price, feature/limit sources) comes from here.
+  getEffectivePlan: async (tenantId: string) =>
+    (await apiClient.get(`${M}/tenants/${tenantId}/effective-plan`)).data,
   updateSubscription: async (tenantId: string, data: Record<string, unknown>) =>
     (await apiClient.put(`${M}/tenants/${tenantId}/subscription`, data)).data,
 
@@ -55,8 +60,10 @@ export const masterApi = {
   getInvoice: async (id: string) => (await apiClient.get(`${M}/invoices/${id}`)).data,
   markInvoicePaid: async (id: string, data: Record<string, unknown>) =>
     (await apiClient.post(`${M}/invoices/${id}/mark-paid`, data)).data,
-  chargeInvoice: async (id: string) =>
-    (await apiClient.post(`${M}/invoices/${id}/charge`)).data,
+  // The backend declares the body as a required model (InvoiceChargeRequest), so
+  // it has to be sent even though every field inside it has a default.
+  chargeInvoice: async (id: string, method = 'pix') =>
+    (await apiClient.post(`${M}/invoices/${id}/charge`, { method })).data,
   cancelInvoice: async (id: string, reason: string) =>
     (await apiClient.post(`${M}/invoices/${id}/cancel`, { reason })).data,
 
@@ -78,7 +85,8 @@ export const masterApi = {
   // ---- Notifications ----
   listNotifications: async () => (await apiClient.get(`${M}/notifications`)).data,
   getUnreadCount: async () => (await apiClient.get(`${M}/notifications/unread-count`)).data,
-  markRead: async (id: string) => (await apiClient.patch(`${M}/notifications/${id}/read`)).data,
+  markRead: async (id: string) =>
+    (await apiClient.patch(`${M}/notifications/${id}/read`, { is_read: true })).data,
   markAllRead: async () => (await apiClient.post(`${M}/notifications/mark-all-read`)).data,
 
   // ---- Platform ----
